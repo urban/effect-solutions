@@ -112,7 +112,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     p: ({ children, className, ...props }) => (
       <p
         className={cn(
-          "text-[1.05rem] leading-relaxed text-neutral-300 mx-6 mt-6",
+          "text-[1.05rem] leading-relaxed text-neutral-300 mx-6",
           className,
         )}
         {...props}
@@ -123,7 +123,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     ul: ({ children, className, ...props }) => (
       <ul
         className={cn(
-          "space-y-3 text-[1.05rem] text-neutral-300 mx-6 list-[square] list-inside mt-6 marker:text-neutral-500",
+          "space-y-3 text-[1.05rem] text-neutral-300 mx-6 list-[square] list-inside marker:text-neutral-500",
           className,
         )}
         {...props}
@@ -134,7 +134,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     ol: ({ children, className, ...props }) => (
       <ol
         className={cn(
-          "space-y-3 text-[1.05rem] text-neutral-300 mx-6 list-decimal list-inside mt-6",
+          "space-y-3 text-[1.05rem] text-neutral-300 mx-6 list-decimal list-inside",
           className,
         )}
         {...props}

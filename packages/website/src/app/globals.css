@@ -115,6 +115,7 @@
 .prose h3 {
   letter-spacing: 0.02em;
   margin-top: 0rem;
+  margin-bottom: 1em;
 }
 
 /* Heading spacing - add top margin when following content, but not after hr or other headings */

@@ -9,7 +9,13 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { type FocusEvent, useCallback, useState } from "react";
+import {
+  type FocusEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useLessonSfxHandlers } from "@/lib/useLessonNavSfx";
 import { useSoundSettings } from "@/lib/useSoundSettings";
 import VerticalCutReveal from "./VerticalCutReveal";
@@ -44,6 +50,8 @@ export function LessonHeader({ lessonTitles }: LessonHeaderProps) {
   const pathname = usePathname();
   const [isHovered, setIsHovered] = useState(false);
   const [hoverAnimationId, setHoverAnimationId] = useState(0);
+  const [titleAnimationId, setTitleAnimationId] = useState(0);
+  const previousTitleRef = useRef<string | null>(null);
   const {
     handleHover: playHoverSfx,
     handleClick: playClickSfx,
@@ -109,9 +117,24 @@ export function LessonHeader({ lessonTitles }: LessonHeaderProps) {
     }
   }
 
+  useEffect(() => {
+    if (previousTitleRef.current === null) {
+      previousTitleRef.current = displayTitle;
+      return;
+    }
+
+    if (previousTitleRef.current === displayTitle) {
+      return;
+    }
+
+    previousTitleRef.current = displayTitle;
+    setTitleAnimationId((id) => id + 1);
+  }, [displayTitle]);
+
   const iconKey = `${
     isHovered && !isLessonsPage ? "arrow" : "chalkboard"
   }-${hoverAnimationId}`;
+  const titleKey = `${displayTitle}-${titleAnimationId}`;
 
   return (
     <header className="border-b border-neutral-800 h-16">
@@ -160,7 +183,7 @@ export function LessonHeader({ lessonTitles }: LessonHeaderProps) {
               </div>
 
               <AnimatePresence mode="popLayout" initial={false}>
-                <div className="ml-3" key={displayTitle}>
+                <div className="ml-3" key={titleKey}>
                   <VerticalCutReveal
                     splitBy="characters"
                     staggerDuration={0.025}
