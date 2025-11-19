@@ -1,0 +1,18 @@
+#!/bin/sh
+set -e
+
+if [ "$SKIP_DOC_TESTS" = "1" ]; then
+  echo "[pre-push] Skipping doc tests (SKIP_DOC_TESTS=1)."
+  exit 0
+fi
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+echo "[pre-push] Running bun test to verify CLI/docs..."
+if ! bun test; then
+  echo "[pre-push] bun test failed; aborting push." >&2
+  exit 1
+fi
+
+echo "[pre-push] Docs verified."

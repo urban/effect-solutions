@@ -2,7 +2,8 @@
 
 import { DOC_LOOKUP, DOCS } from "../../cli/src/docs-manifest";
 import { McpSchema, McpServer, Tool, Toolkit } from "@effect/ai";
-import { BunRuntime, BunSink, BunStream } from "@effect/platform-bun";
+import { BunRuntime, BunSink, BunStream, BunContext } from "@effect/platform-bun";
+import { Command } from "@effect/platform";
 import { Effect, Layer, Schema } from "effect";
 
 const SERVER_NAME = "effect-solutions";
@@ -84,6 +85,9 @@ const SearchTool = Tool.make("search_effect_solutions", {
 const OpenIssueTool = Tool.make("open_issue", {
   description: "Open a GitHub issue to request new documentation, ask questions not covered by current guides, or suggest topics. Returns a pre-filled issue URL.",
   parameters: {
+    category: Schema.Literal("Topic Request", "Fix", "Improvement").annotations({
+      description: "Type of issue: 'Topic Request' for new docs, 'Fix' for errors/bugs, 'Improvement' for enhancements",
+    }),
     title: Schema.String.annotations({
       description: "Brief title for the issue (e.g., 'How to handle errors in services')",
     }),
@@ -153,19 +157,26 @@ const searchDocs = ({ query }: { query: string }) =>
     return { results };
   });
 
-const openIssue = ({ title, description }: { title: string; description: string }) =>
-  Effect.sync(() => {
+const openIssue = ({ category, title, description }: { category: "Topic Request" | "Fix" | "Improvement"; title: string; description: string }) =>
+  Effect.gen(function* () {
     const repoUrl = "https://github.com/kitlangton/effect-solutions";
-    const body = `## Description\n\n${description}\n\n---\n*Created via Effect Solutions MCP*`;
+    const fullTitle = `[${category}] ${title}`;
+    const body = `## Description\n\n${description}\n\n---\n*Created via [Effect Solutions MCP](${repoUrl})*`;
 
     const issueUrl = `${repoUrl}/issues/new?${new URLSearchParams({
-      title,
+      title: fullTitle,
       body,
     }).toString()}`;
 
+    // Open the URL in the default browser
+    yield* Command.make("open", issueUrl).pipe(
+      Command.exitCode,
+      Effect.catchAll(() => Effect.void)
+    );
+
     return {
       issueUrl,
-      message: `GitHub issue URL created. Open this URL to submit: ${issueUrl}`,
+      message: `Opened GitHub issue in browser: ${issueUrl}`,
     };
   });
 
@@ -190,6 +201,7 @@ const serverLayer = Layer.mergeAll(
       stdout: BunSink.stdout,
     }),
   ),
+  Layer.provide(BunContext.layer),
 );
 
 Layer.launch(serverLayer).pipe(BunRuntime.runMain);
