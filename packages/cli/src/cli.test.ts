@@ -32,7 +32,7 @@ describe("effect-best-practices CLI", () => {
           (previousCwd) => Effect.sync(() => process.chdir(previousCwd)),
         );
 
-        yield* runCli(["install"]);
+        yield* runCli(["bun", "effect-best-practices", "install"]);
 
         const skillDir = path.join(
           projectDir,

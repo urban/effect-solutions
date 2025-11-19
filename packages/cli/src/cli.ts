@@ -61,14 +61,14 @@ export const cli = Command.make("effect-best-practices").pipe(
   Command.withDescription("Effect Best Practices CLI"),
 );
 
-export const runCli = (args: ReadonlyArray<string>) =>
+export const runCli = (argv: ReadonlyArray<string>) =>
   Command.run(cli, {
     name: "effect-best-practices",
     version: "0.1.0",
-  })(args);
+  })(argv);
 
 if (import.meta.main) {
-  runCli(process.argv.slice(2)).pipe(
+  runCli(process.argv).pipe(
     Effect.provide(BunContext.layer),
     BunRuntime.runMain,
   );

@@ -21,6 +21,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: '--allowedTools "WebFetch(domain:raw.githubusercontent.com),WebFetch(domain:githubusercontent.com),Bash(gh issue create:*)"'
           prompt: |
             TASK: Validate documentation files against their source repositories
 

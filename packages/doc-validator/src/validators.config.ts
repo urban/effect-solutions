@@ -20,7 +20,7 @@ export const validationTargets: ValidationTarget[] = [
   {
     name: "Effect Language Service Setup",
     localDocPath: "packages/website/references/01-repo-setup.md",
-    sourceRepo: "Effect-TS/effect-language-service",
+    sourceRepo: "Effect-TS/language-service",
     sourcePath: "README.md",
   },
 ]
