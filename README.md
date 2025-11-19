@@ -16,9 +16,17 @@ This Bun workspace powers the Effect Solutions documentation site and installer.
 
 ## Effect Solutions MCP Server
 
-- Start the stdio server with `bun run dev:mcp` (or `bun --cwd packages/mcp run dev`) to expose the docs via MCP resources.
+- Start the stdio server with `bun run dev:mcp` (or `bun --cwd packages/mcp run dev`) to expose the docs via MCP resources and tools.
 - Point MCP-aware clients (ChatGPT desktop, Claude Desktop, OpenAI Agents SDK, etc.) at that command; resources live under the `effect-docs://` scheme.
 - Use the resource template completions to grab any doc slug; content matches the CLI output bit-for-bit.
+
+### Available Tools
+
+- **search_effect_solutions** - Search documentation by query string with relevance scoring
+- **open_issue** - Open a GitHub issue with pre-filled content and browser launch
+  - Parameters: `category` (Topic Request | Fix | Improvement), `title`, `description`
+  - Automatically opens the issue form in the browser
+  - Title is prefixed with category tag (e.g., "[Topic Request] How to...")
 
 ## Living Documentation
 
