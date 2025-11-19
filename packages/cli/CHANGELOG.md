@@ -1,5 +1,11 @@
 # effect-solutions
 
+## 0.2.4
+
+### Patch Changes
+
+- aa6efbd: Add new documentation topics (HTTP clients, testing with Vitest, observability), publish MCP server, and improve UI animations. All bunx commands now use @latest suffix for consistency.
+
 ## 0.2.3
 
 ### Patch Changes
