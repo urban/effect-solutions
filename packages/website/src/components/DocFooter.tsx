@@ -8,9 +8,9 @@ import { useState } from "react";
 import { useLessonSfxHandlers } from "@/lib/useLessonNavSfx";
 import { KIT_TWITTER_URL } from "@/constants/urls";
 
-export function ReferenceFooter() {
+export function DocFooter() {
   const pathname = usePathname();
-  const isReferencePage = pathname.startsWith("/references/");
+  const isDocPage = pathname !== "/" && !pathname.startsWith("/_");
   const { handleHover: playHoverSfx, handleClick: playClickSfx } =
     useLessonSfxHandlers();
   const [isKitHovered, setIsKitHovered] = useState(false);
@@ -18,15 +18,15 @@ export function ReferenceFooter() {
   return (
     <footer className="border-t border-neutral-800 no-prose h-16">
       <div className="max-w-screen-md mx-auto flex items-center justify-between w-full px-6 border-x border-neutral-800 h-full">
-        {isReferencePage ? (
+        {isDocPage ? (
           <Link
-            href="/references"
+            href="/"
             className="flex items-center gap-3 text-sm font-normal uppercase tracking-wider text-neutral-500  hover:text-neutral-300 no-underline !select-none cursor-default"
             onMouseEnter={playHoverSfx}
             onClick={playClickSfx}
           >
             <ArrowLeftIcon aria-hidden="true" className="h-5 w-5" />
-            <span className="!select-none">Back to References</span>
+            <span className="!select-none">Back to Docs</span>
           </Link>
         ) : (
           <div />

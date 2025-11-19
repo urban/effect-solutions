@@ -12,7 +12,7 @@ interface MDXLinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
 
 export function MDXLink({ children, className, href, ...props }: MDXLinkProps) {
   const { playHoverTone, playTapTone } = useLessonNavSfx();
-  const isInternal = href?.startsWith("/references/") || href?.startsWith("./");
+  const isInternal = (href?.startsWith("/") && !href.startsWith("//")) || href?.startsWith("./");
   const isExternal =
     href?.startsWith("http://") || href?.startsWith("https://");
   const iconClassName = "text-blue-400/60 font-bold";

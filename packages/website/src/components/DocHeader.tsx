@@ -20,8 +20,8 @@ import { useLessonSfxHandlers } from "@/lib/useLessonNavSfx";
 import { useSoundSettings } from "@/lib/useSoundSettings";
 import VerticalCutReveal from "./VerticalCutReveal";
 
-interface ReferenceHeaderProps {
-  referenceTitles: Record<string, string>;
+interface DocHeaderProps {
+  docTitles: Record<string, string>;
   titleSplitMode?: TitleSplitMode;
 }
 
@@ -52,10 +52,10 @@ const iconAnimationConfig = {
   transition: { type: "spring" as const, visualDuration: 0.2, bounce: 0 },
 };
 
-export function ReferenceHeader({
-  referenceTitles,
+export function DocHeader({
+  docTitles,
   titleSplitMode = "words",
-}: ReferenceHeaderProps) {
+}: DocHeaderProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isHovered, setIsHovered] = useState(false);
@@ -116,15 +116,14 @@ export function ReferenceHeader({
 
   let displayTitle = "EFFECT SOLUTIONS";
 
-  const isReferencesPage = pathname === "/references";
+  const isDocsListPage = pathname === "/";
 
-  if (pathname.startsWith("/references/")) {
-    const slug = pathname.split("/references/")[1];
-    if (slug && slug !== "") {
-      const referenceTitle = referenceTitles[slug];
-      if (referenceTitle) {
-        displayTitle = referenceTitle;
-      }
+  // Check if we're on a specific doc page
+  if (pathname !== "/" && !pathname.startsWith("/_")) {
+    const slug = pathname.slice(1); // Remove leading slash
+    const docTitle = docTitles[slug];
+    if (docTitle) {
+      displayTitle = docTitle;
     }
   }
 
@@ -153,7 +152,7 @@ export function ReferenceHeader({
   }, [displayTitle, resolvedSplitMode]);
 
   const iconKey = `${
-    isHovered && !isReferencesPage ? "arrow" : "book"
+    isHovered && !isDocsListPage ? "arrow" : "book"
   }-${hoverAnimationId}`;
   const titleKey = `${displayTitle}-${resolvedSplitMode}-${titleAnimationId}`;
 
@@ -161,7 +160,7 @@ export function ReferenceHeader({
     <header className="border-b border-neutral-800 h-16">
       <div className="max-w-screen-md mx-auto border-x border-neutral-800 flex items-center justify-between h-full">
         <Link
-          href="/references"
+          href="/"
           className="flex-1 cursor-default"
           onBlur={handleBlur}
           onClick={handleClick}
@@ -173,7 +172,7 @@ export function ReferenceHeader({
             <div className="flex items-center text-sm font-normal uppercase tracking-wider">
               <div className="relative w-5 h-5">
                 <AnimatePresence mode="popLayout" initial={false}>
-                  {isHovered && !isReferencesPage ? (
+                  {isHovered && !isDocsListPage ? (
                     <motion.div
                       key={iconKey}
                       className="absolute inset-0"

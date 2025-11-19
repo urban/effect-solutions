@@ -4,8 +4,8 @@ import Link from "next/link";
 import { type FocusEvent, useCallback } from "react";
 import { useLessonSfxHandlers } from "@/lib/useLessonNavSfx";
 
-interface ReferenceListProps {
-  references: Array<{
+interface DocListProps {
+  docs: Array<{
     slug: string;
     title: string;
     description?: string;
@@ -13,7 +13,7 @@ interface ReferenceListProps {
   }>;
 }
 
-export function ReferenceList({ references }: ReferenceListProps) {
+export function DocList({ docs }: DocListProps) {
   const {
     handleHover: playHoverSfx,
     handleClick: playClickSfx,
@@ -39,10 +39,10 @@ export function ReferenceList({ references }: ReferenceListProps) {
 
   return (
     <section>
-      {references.map((reference) => (
-        <div key={reference.slug}>
+      {docs.map((doc) => (
+        <div key={doc.slug}>
           <Link
-            href={`/references/${reference.slug}`}
+            href={`/${doc.slug}`}
             className="block px-6 py-8 hover:bg-neutral-900/50 cursor-default"
             onClick={handleClick}
             onFocus={handleFocus}
@@ -51,18 +51,18 @@ export function ReferenceList({ references }: ReferenceListProps) {
             <article>
               <div className="flex items-center gap-3">
                 <h2 className="text-[1.05rem] font-semibold uppercase leading-snug text-neutral-100">
-                  {reference.title}
+                  {doc.title}
                 </h2>
-                {reference.draft && (
+                {doc.draft && (
                   <span className="px-2 py-0.5 text-xs font-medium uppercase tracking-wide bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
                     Draft
                   </span>
                 )}
               </div>
 
-              {reference.description && (
+              {doc.description && (
                 <p className="mt-3 text-[1.05rem] leading-relaxed text-neutral-300">
-                  {reference.description}
+                  {doc.description}
                 </p>
               )}
             </article>

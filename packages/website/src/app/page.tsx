@@ -1,5 +1,41 @@
-import { redirect } from "next/navigation";
+import type { Metadata } from "next";
+import { DocList } from "@/components/DocList";
+import { getAllDocs } from "@/lib/mdx";
+import { SITE_DEPLOYMENT_URL } from "@/constants/urls";
 
-export default function HomePage() {
-  redirect("/references");
+export const metadata: Metadata = {
+  title: "Effect Solutions",
+  description:
+    "Effect Solutions guides for building Effect TypeScript applications",
+  openGraph: {
+    title: "Effect Solutions",
+    description:
+      "Effect Solutions guides for building Effect TypeScript applications",
+    url: SITE_DEPLOYMENT_URL,
+    siteName: "Effect Solutions",
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Effect Solutions",
+    description:
+      "Effect Solutions guides for building Effect TypeScript applications",
+  },
+};
+
+export default async function HomePage() {
+  const docs = getAllDocs();
+
+  return (
+    <main className="mx-auto max-w-screen-md border-x border-neutral-800 flex-1 flex flex-col w-full min-h-[calc(100vh-8rem)]">
+      <DocList docs={docs} />
+
+      {docs.length === 0 && (
+        <div className="px-6 py-20 text-center text-foreground/50">
+          <p>No docs available yet. Please check back soon.</p>
+        </div>
+      )}
+    </main>
+  );
 }

@@ -2,26 +2,26 @@ import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 
-const referencesDirectory = path.join(process.cwd(), "references");
+const docsDirectory = path.join(process.cwd(), "docs");
 
-export interface ReferenceMetadata {
+export interface DocMetadata {
   title: string;
   description?: string;
   order?: number;
   draft?: boolean;
 }
 
-export interface Reference extends ReferenceMetadata {
+export interface Doc extends DocMetadata {
   slug: string;
   content: string;
 }
 
-export function getAllReferenceSlugs(): string[] {
-  if (!fs.existsSync(referencesDirectory)) {
+export function getAllDocSlugs(): string[] {
+  if (!fs.existsSync(docsDirectory)) {
     return [];
   }
 
-  const fileNames = fs.readdirSync(referencesDirectory);
+  const fileNames = fs.readdirSync(docsDirectory);
   return fileNames
     .filter((name) => name.endsWith(".md") || name.endsWith(".mdx"))
     .map((name) => name.replace(/\.(md|mdx)$/, ""));
@@ -34,22 +34,22 @@ function stripFirstH1(content: string): string {
 
 function processInternalLinks(content: string): string {
   // Convert markdown links that reference other docs to proper paths
-  // Matches [text](filename) or [text](filename.md) and converts to [text](/references/filename)
+  // Matches [text](filename) or [text](filename.md) and converts to [text](/filename)
   return content.replace(
     /\[([^\]]+)\]\((?!https?:\/\/|\/|#)([^)]+?)(\.mdx?)?(\))/g,
     (_match, text, filename) => {
-      // Remove any .md or .mdx extension and add /references/ prefix
+      // Remove any .md or .mdx extension and add / prefix
       const cleanFilename = filename.replace(/\.(mdx?|md)$/, "");
-      return `[${text}](/references/${cleanFilename})`;
+      return `[${text}](/${cleanFilename})`;
     },
   );
 }
 
-export function getReferenceBySlug(slug: string): Reference | null {
+export function getDocBySlug(slug: string): Doc | null {
   try {
-    let fullPath = path.join(referencesDirectory, `${slug}.md`);
+    let fullPath = path.join(docsDirectory, `${slug}.md`);
     if (!fs.existsSync(fullPath)) {
-      fullPath = path.join(referencesDirectory, `${slug}.mdx`);
+      fullPath = path.join(docsDirectory, `${slug}.mdx`);
     }
 
     const fileContents = fs.readFileSync(fullPath, "utf8");
@@ -71,22 +71,22 @@ export function getReferenceBySlug(slug: string): Reference | null {
   }
 }
 
-export function getAllReferences(): Reference[] {
-  const slugs = getAllReferenceSlugs();
+export function getAllDocs(): Doc[] {
+  const slugs = getAllDocSlugs();
 
-  const references = slugs
-    .map((slug) => getReferenceBySlug(slug))
-    .filter((ref): ref is Reference => ref !== null)
-    .filter((ref) => {
+  const docs = slugs
+    .map((slug) => getDocBySlug(slug))
+    .filter((doc): doc is Doc => doc !== null)
+    .filter((doc) => {
       // In production, hide drafts
       if (process.env.NODE_ENV === "production") {
-        return !ref.draft;
+        return !doc.draft;
       }
       // In development, show all
       return true;
     });
 
-  return references.sort((a, b) => {
+  return docs.sort((a, b) => {
     if (a.order !== undefined && b.order !== undefined) {
       return a.order - b.order;
     }

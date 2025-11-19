@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const PORT = Number(process.env.CONTENT_WATCHER_PORT ?? 3201);
-const WATCH_DIR = path.join(process.cwd(), "references");
+const WATCH_DIR = path.join(process.cwd(), "docs");
 
 const clients = new Set<WebSocket>();
 

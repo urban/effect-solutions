@@ -1,16 +1,16 @@
 ---
-title: Repo Setup
+title: Project Setup
 description: "Install the Effect Language Service and strict project defaults"
 order: 1
 ---
 
-# Repo Setup
+# Project Setup
 
 This guide covers:
 1. Effect Language Service - Editor diagnostics & build-time type checking
 2. TypeScript Configuration - Strict settings for Effect projects
 
-For a well-configured Effect repository, install the Effect Language Service and configure TypeScript for optimal development experience.
+For a well-configured Effect project, install the Effect Language Service and configure TypeScript for optimal development experience.
 
 ## Effect Language Service
 
@@ -92,15 +92,42 @@ This adds Effect's reference docs and website content searchable by your agent.
 
 **Repository:** [tim-smart/effect-mcp](https://github.com/tim-smart/effect-mcp)
 
-### 2. Clone Effect Repository
+### 2. LLM Context Directory
 
-Give your agent direct codebase access by cloning Effect locally:
+For repos where you work with AI agents (Claude, Cursor, etc.), use a `.context/` folder pattern:
 
+- **Track the folder** in git, but **ignore its contents**
+- Clone reference repos here (Effect core, related libraries, etc.) for LLM traversal
+- The LLM can read upstream code/docs without polluting your git history
+
+**Setup:**
+
+In `.gitignore`:
+```gitignore
+# Local LLM context (tracked folder, ignored contents)
+.context/*
+!.context/.gitkeep
+```
+
+In `CLAUDE.md` or `AGENTS.md`:
+```markdown
+## LLM Context Workspace
+
+- This repo uses `.context/` for local reference clones
+- Typical entries:
+  - `effect` – main Effect repo
+  - `effect-solutions` – best practices repo
+  - Any app/stack-specific references
+- Tell agents: "Additional code/docs live under `.context/`"
+```
+
+Then clone reference repos:
 ```bash
+cd .context
 git clone https://github.com/Effect-TS/effect.git
 ```
 
-This allows deep exploration of Effect internals, implementation patterns, and source examples.
+This keeps your workspace clean while giving agents access to upstream sources.
 
 ## TypeScript Configuration
 

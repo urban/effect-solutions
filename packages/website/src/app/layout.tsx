@@ -1,11 +1,16 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import { Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
-import "./globals.css";
-import { Analytics } from "@vercel/analytics/next";
 import { AutoRefresh } from "@/components/AutoRefresh";
-import { SoundSettingsProvider } from "@/lib/useSoundSettings";
+import { CommandPalette } from "@/components/CommandPalette";
 import { SITE_URL } from "@/constants/urls";
+import {
+  getDocSearchDocuments,
+  serializeSearchDocuments,
+} from "@/lib/doc-search";
+import { SoundSettingsProvider } from "@/lib/useSoundSettings";
+import "./globals.css";
 
 const commitMono = localFont({
   src: "../../public/fonts/commit-mono/CommitMono-Variable.ttf",
@@ -66,11 +71,14 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const documents = serializeSearchDocuments(getDocSearchDocuments());
+
   return (
     <html lang="en">
       <body
         className={`${commitMono.variable} ${geistMono.variable} antialiased`}
       >
+        <CommandPalette documents={documents} />
         <AutoRefresh />
         <SoundSettingsProvider>{children}</SoundSettingsProvider>
         <Analytics />

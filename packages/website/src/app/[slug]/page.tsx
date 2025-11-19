@@ -7,33 +7,33 @@ import { FootnoteArticleShell } from "@/components/mdx/FootnoteArticleShell";
 import { dimensions } from "@/constants/dimensions";
 import { SITE_DEPLOYMENT_URL } from "@/constants/urls";
 import { FootnoteProvider } from "@/lib/footnote-context";
-import { getAllReferenceSlugs, getReferenceBySlug } from "@/lib/mdx";
+import { getAllDocSlugs, getDocBySlug } from "@/lib/mdx";
 import { useMDXComponents } from "@/mdx-components";
 
-interface ReferencePageProps {
+interface DocPageProps {
   params: Promise<{ slug: string }>;
 }
 
 export async function generateStaticParams() {
-  const slugs = getAllReferenceSlugs();
+  const slugs = getAllDocSlugs();
   return slugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({
   params,
-}: ReferencePageProps): Promise<Metadata> {
+}: DocPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const reference = getReferenceBySlug(slug);
+  const doc = getDocBySlug(slug);
 
-  if (!reference) {
+  if (!doc) {
     return {
-      title: "Reference Not Found - Effect Solutions",
-      description: "The requested reference could not be found",
+      title: "Doc Not Found - Effect Solutions",
+      description: "The requested doc could not be found",
     };
   }
 
-  const title = `${reference.title} - Effect Solutions`;
-  const description = reference.description || reference.title;
+  const title = `${doc.title} - Effect Solutions`;
+  const description = doc.description || doc.title;
 
   return {
     title,
@@ -41,7 +41,7 @@ export async function generateMetadata({
     openGraph: {
       title,
       description,
-      url: `${SITE_DEPLOYMENT_URL}/references/${slug}`,
+      url: `${SITE_DEPLOYMENT_URL}/${slug}`,
       siteName: "Effect Solutions",
       locale: "en_US",
       type: "website",
@@ -54,11 +54,11 @@ export async function generateMetadata({
   };
 }
 
-export default async function ReferencePage({ params }: ReferencePageProps) {
+export default async function DocPage({ params }: DocPageProps) {
   const { slug } = await params;
-  const reference = getReferenceBySlug(slug);
+  const doc = getDocBySlug(slug);
 
-  if (!reference) {
+  if (!doc) {
     notFound();
   }
 
@@ -71,7 +71,7 @@ export default async function ReferencePage({ params }: ReferencePageProps) {
           <FootnoteArticleShell>
             <article className="prose prose-lg prose-invert max-w-none py-6">
               <MDXRemote
-                source={reference.content}
+                source={doc.content}
                 components={components}
                 options={{
                   mdxOptions: {

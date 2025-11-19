@@ -1,8 +1,8 @@
 import { cache } from "react";
-import { getAllReferences } from "@/lib/mdx";
+import { getAllDocs } from "@/lib/mdx";
 import { normalizeWhitespace, stripMarkdown, tokenize } from "./text";
 
-export interface ReferenceSearchDocument {
+export interface DocSearchDocument {
   slug: string;
   title: string;
   description: string;
@@ -51,28 +51,28 @@ function extractKeywords(
   return ordered;
 }
 
-export const getReferenceSearchDocuments = cache(
-  (): ReferenceSearchDocument[] => {
-    const references = getAllReferences();
+export const getDocSearchDocuments = cache(
+  (): DocSearchDocument[] => {
+    const docs = getAllDocs();
 
-    return references.map((reference, index) => {
-      const summary = createSummary(reference.content);
-      const description = reference.description ?? "";
+    return docs.map((doc, index) => {
+      const summary = createSummary(doc.content);
+      const description = doc.description ?? "";
       return {
-        slug: reference.slug,
-        title: reference.title,
+        slug: doc.slug,
+        title: doc.title,
         description,
         summary,
-        priority: reference.order !== undefined ? reference.order : index + 1,
-        keywords: extractKeywords(reference.title, description, summary),
+        priority: doc.order !== undefined ? doc.order : index + 1,
+        keywords: extractKeywords(doc.title, description, summary),
       };
     });
   },
 );
 
 export function serializeSearchDocuments(
-  documents: ReferenceSearchDocument[],
-): ReferenceSearchDocument[] {
+  documents: DocSearchDocument[],
+): DocSearchDocument[] {
   return documents.map((doc) => ({
     ...doc,
     title: normalizeWhitespace(doc.title),
