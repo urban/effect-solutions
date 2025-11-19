@@ -3,17 +3,16 @@
 import {
   ArrowLeftIcon,
   BookOpenIcon,
+  BriefcaseIcon,
+  BriefcaseMetalIcon,
   SpeakerSimpleHighIcon,
   SpeakerSimpleSlashIcon,
+  SuitcaseIcon,
 } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  type FocusEvent,
-  useCallback,
-  useState,
-} from "react";
+import { type FocusEvent, useCallback, useState } from "react";
 import { useLessonSfxHandlers } from "@/lib/useLessonNavSfx";
 import { useSoundSettings } from "@/lib/useSoundSettings";
 import { NavTitleCycler } from "./NavTitleCycler";
@@ -44,9 +43,7 @@ const iconAnimationConfig = {
   transition: { type: "spring" as const, visualDuration: 0.2, bounce: 0 },
 };
 
-export function DocHeader({
-  docTitles,
-}: DocHeaderProps) {
+export function DocHeader({ docTitles }: DocHeaderProps) {
   const pathname = usePathname();
   const [isHovered, setIsHovered] = useState(false);
   const [hoverAnimationId, setHoverAnimationId] = useState(0);
@@ -154,17 +151,17 @@ export function DocHeader({
                       style={{ willChange: "transform, opacity, filter" }}
                       {...iconAnimationConfig}
                     >
-                      <BookOpenIcon
+                      <BriefcaseIcon
                         aria-hidden="true"
                         className="h-5 w-5"
-                        weight="fill"
+                        // weight="fill"
                       />
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
 
-              <div className="ml-3 flex-1 leading-tight">
+              <div className="ml-1.5 flex-1 leading-tight">
                 <NavTitleCycler title={displayTitle} />
               </div>
             </div>

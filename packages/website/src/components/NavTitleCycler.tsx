@@ -43,7 +43,7 @@ export function NavTitleCycler({ title, className }: NavTitleCyclerProps) {
   return (
     <div className={cn("relative flex-1 min-w-0", className)}>
       <div
-        className="relative px-1.5 py-1"
+        className="relative grid px-1.5 py-1"
         style={{
           maskImage:
             "linear-gradient(to bottom, transparent 0%, black 12px, black calc(100% - 12px), transparent 100%)",
@@ -51,10 +51,9 @@ export function NavTitleCycler({ title, className }: NavTitleCyclerProps) {
             "linear-gradient(to bottom, transparent 0%, black 12px, black calc(100% - 12px), transparent 100%)",
         }}
       >
-        <AnimatePresence initial={false} mode="popLayout">
+        <AnimatePresence initial={false}>
           <motion.span
             key={animationKey}
-            layout="position"
             variants={TITLE_VARIANTS}
             initial="initial"
             animate="animate"
@@ -64,7 +63,7 @@ export function NavTitleCycler({ title, className }: NavTitleCyclerProps) {
               visualDuration: 0.4,
               bounce: 0.3,
             }}
-            className="block leading-tight will-change-transform"
+            className="block leading-tight will-change-transform whitespace-nowrap col-start-1 row-start-1"
           >
             {renderedTitle}
           </motion.span>
