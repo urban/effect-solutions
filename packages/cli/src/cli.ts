@@ -29,9 +29,7 @@ const installSkill = (global: boolean) =>
       ? path.join(homeDir, ".claude", "skills", skillName)
       : path.join(path.join(process.cwd()), ".claude", "skills", skillName);
 
-    yield* Console.log(
-      `Installing Effect Solutions skill to ${targetDir}...`,
-    );
+    yield* Console.log(`Installing Effect Solutions skill to ${targetDir}...`);
 
     // Create directories
     yield* fs.makeDirectory(path.join(targetDir, "references"), {

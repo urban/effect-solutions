@@ -6,17 +6,12 @@ import {
   type ReactNode,
 } from "react";
 import { codeToHtml } from "shiki";
-import {
-  ArrowRight,
-  ArrowSquareOut,
-  AsteriskIcon,
-  Sparkle,
-} from "@phosphor-icons/react/dist/ssr";
-import Link from "next/link";
+import { AsteriskIcon, Sparkle } from "@phosphor-icons/react/dist/ssr";
 import { CalloutAlignedHtml } from "@/components/mdx/CalloutAlignedHtml";
 import { FootnoteDefinitions } from "@/components/mdx/FootnoteDefinitions";
 import { FootnoteReference } from "@/components/mdx/FootnoteReference";
 import { MarginAside } from "@/components/mdx/MarginAside";
+import { MDXLink } from "@/components/mdx/MDXLink";
 import { cn } from "@/lib/cn";
 import { transformerAnnotations } from "@/lib/shiki-transformer-annotations";
 
@@ -156,41 +151,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
         {children}
       </li>
     ),
-    a: ({ children, className, href, ...props }) => {
-      const isInternal =
-        href?.startsWith("/references/") || href?.startsWith("./");
-      const isExternal =
-        href?.startsWith("http://") || href?.startsWith("https://");
-      const iconClassName = "text-blue-400/60 font-bold";
-
-      const linkClassName = cn(
-        "text-blue-400 hover:text-blue-300 no-underline cursor-pointer inline-flex items-center gap-1",
-        className,
-      );
-
-      if (isInternal && href) {
-        return (
-          <Link href={href} className={linkClassName} {...props}>
-            {children}
-            <ArrowRight size={16} weight="bold" className={iconClassName} />
-          </Link>
-        );
-      }
-
-      return (
-        <a
-          href={href}
-          className={linkClassName}
-          {...(isExternal && { target: "_blank", rel: "noopener noreferrer" })}
-          {...props}
-        >
-          {children}
-          {isExternal && (
-            <ArrowSquareOut size={16} weight="bold" className={iconClassName} />
-          )}
-        </a>
-      );
-    },
+    a: MDXLink,
     MarginAside,
     code: CodeBlock,
     pre: ({ children }) => (

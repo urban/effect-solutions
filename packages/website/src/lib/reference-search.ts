@@ -27,11 +27,16 @@ function createSummary(content: string): string {
     truncated.lastIndexOf("? "),
   );
 
-  const safeBreakpoint = lastSentenceBreak > 200 ? lastSentenceBreak + 1 : truncated.length;
+  const safeBreakpoint =
+    lastSentenceBreak > 200 ? lastSentenceBreak + 1 : truncated.length;
   return `${truncated.slice(0, safeBreakpoint).trim()}…`;
 }
 
-function extractKeywords(title: string, description: string, summary: string): string[] {
+function extractKeywords(
+  title: string,
+  description: string,
+  summary: string,
+): string[] {
   const tokens = tokenize(`${title} ${description} ${summary}`);
   const seen = new Set<string>();
   const ordered: string[] = [];
@@ -58,8 +63,7 @@ export const getReferenceSearchDocuments = cache(
         title: reference.title,
         description,
         summary,
-        priority:
-          reference.order !== undefined ? reference.order : index + 1,
+        priority: reference.order !== undefined ? reference.order : index + 1,
         keywords: extractKeywords(reference.title, description, summary),
       };
     });
