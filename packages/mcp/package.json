@@ -1,9 +1,8 @@
 {
   "name": "effect-solutions-mcp",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Effect-first MCP server for Effect TypeScript best practices documentation",
   "type": "module",
-  "private": true,
   "bin": {
     "effect-solutions-mcp": "./dist/effect-solutions-mcp"
   },

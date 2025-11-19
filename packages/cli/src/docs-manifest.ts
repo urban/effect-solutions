@@ -31,6 +31,15 @@ import DOC__08_PROJECT_STRUCTURE from "../../website/docs/08-project-structure.m
 import DOC__09_INCREMENTAL_ADOPTION from "../../website/docs/09-incremental-adoption.md" with {
   type: "text",
 };
+import DOC__10_HTTP_CLIENTS from "../../website/docs/10-http-clients.md" with {
+  type: "text",
+};
+import DOC__11_TESTING_WITH_VITEST from "../../website/docs/11-testing-with-vitest.md" with {
+  type: "text",
+};
+import DOC__12_OBSERVABILITY from "../../website/docs/12-observability.md" with {
+  type: "text",
+};
 
 type DocMeta = {
   readonly slug: string;
@@ -59,6 +68,12 @@ const RAW_DOCS: ReadonlyArray<RawDoc> = [
     filename: "09-incremental-adoption.md",
     source: DOC__09_INCREMENTAL_ADOPTION,
   },
+  { filename: "10-http-clients.md", source: DOC__10_HTTP_CLIENTS },
+  {
+    filename: "11-testing-with-vitest.md",
+    source: DOC__11_TESTING_WITH_VITEST,
+  },
+  { filename: "12-observability.md", source: DOC__12_OBSERVABILITY },
 ];
 
 const filenameToSlug = (filename: string): string => {

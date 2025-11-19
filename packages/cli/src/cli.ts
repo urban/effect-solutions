@@ -5,9 +5,10 @@ import { Console, Effect, pipe } from "effect";
 import { Args, Command } from "@effect/cli";
 import { DOC_LOOKUP, DOCS } from "./docs-manifest";
 import pc from "picocolors";
+import pkg from "../package.json" with { type: "json" };
 
 const CLI_NAME = "effect-solutions";
-const CLI_VERSION = "0.2.0";
+const CLI_VERSION = pkg.version;
 
 const isDocSlug = (value: string): value is keyof typeof DOC_LOOKUP =>
   value in DOC_LOOKUP;

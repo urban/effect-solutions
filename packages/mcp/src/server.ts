@@ -5,9 +5,10 @@ import { McpSchema, McpServer, Tool, Toolkit } from "@effect/ai";
 import { BunRuntime, BunSink, BunStream, BunContext } from "@effect/platform-bun";
 import { Command } from "@effect/platform";
 import { Effect, Layer, Schema } from "effect";
+import pkg from "../package.json" with { type: "json" };
 
 const SERVER_NAME = "effect-solutions";
-const SERVER_VERSION = "0.1.0";
+const SERVER_VERSION = pkg.version;
 const DOC_URI_PREFIX = "effect-docs://";
 
 const docCompletionValues = DOCS.map((doc) => doc.slug);
@@ -37,7 +38,7 @@ const DocsIndexResource = McpServer.resource({
   content: Effect.succeed(listMarkdown),
 });
 
-const DocsTemplate = McpServer.resource`effect-docs://${docSlugParam}`({
+const DocsTemplate = McpServer.resource`effect-docs://docs/${docSlugParam}`({
   name: "Effect Solutions Doc",
   description:
     "Fetch any Effect Solutions doc by slug (see completions for available slugs).",
