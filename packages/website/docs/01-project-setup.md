@@ -8,9 +8,9 @@ order: 1
 
 This guide covers:
 1. Effect Language Service - Editor diagnostics & build-time type checking
-2. TypeScript Configuration - Strict settings for Effect projects
+2. LLM Context Directory - Local reference repositories for AI assistance
 
-For a well-configured Effect project, install the Effect Language Service and configure TypeScript for optimal development experience.
+For a well-configured Effect project, install the Effect Language Service and set up local context for AI-assisted development.
 
 ## Effect Language Service
 
@@ -72,24 +72,31 @@ Add to `package.json` to persist across installs:
 
 **Full guide:** [Effect Language Service](https://github.com/Effect-TS/language-service)
 
-## MCP Setup for Agents
+## Effect Solutions CLI
 
-Point your copilots at the Effect Solutions MCP server so they pull the same docs as the CLI.
-
-```bash
-# Claude Code (workspace scope)
-claude mcp add effect-solutions -- bunx effect-solutions-mcp@latest
-
-# Claude Code (global scope)
-claude mcp add effect-solutions -- bunx effect-solutions-mcp@latest --scope user
-```
+Access Effect Solutions documentation directly from the command line:
 
 ```bash
-# Codex CLI (global config)
-codex mcp add effect-solutions -- bunx effect-solutions-mcp@latest
+# List all topics
+bunx effect-solutions@latest list
+
+# Show specific topics
+bunx effect-solutions@latest show project-setup tsconfig
+
+# Show all topics at once
+bunx effect-solutions@latest show --all
 ```
 
-Claude stores workspace entries per repo unless you pass `--scope user`; Codex writes to `~/.codex/config.toml` (re-run with `--scope local` for per-project overrides).
+For AI assistants, add to `CLAUDE.md` or `AGENTS.md`:
+
+```markdown
+# Effect TypeScript
+
+Use Effect Solutions CLI before working with Effect code:
+- List topics: `bunx effect-solutions@latest list`
+- Show docs: `bunx effect-solutions@latest show <topic>`
+- Apply patterns from docs, don't guess
+```
 
 ## LLM Context Directory
 

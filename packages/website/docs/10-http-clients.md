@@ -70,4 +70,4 @@ const program = Effect.gen(function* () {
 }).pipe(Effect.provide(HttpLive))
 ```
 
-This keeps HTTP wiring out of your business code and lets CLI, tests, and MCP server share the same typed client.
+This keeps HTTP wiring out of your business code and lets CLI and tests share the same typed client.

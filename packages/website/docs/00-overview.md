@@ -10,45 +10,34 @@ Effect Solutions is a comprehensive guide for humans and AI agents to understand
 
 ## LLM Agent Quick Start
 
-Copy these instructions to share with your AI assistant. They'll explain how to set up the MCP server, use the CLI, and interact with Effect Solutions documentation. Just paste this into any agent session and it should guide you through the rest.
+Copy these instructions to share with your AI assistant. They'll explain how to use the CLI and interact with Effect Solutions documentation. Just paste this into any agent session and it should guide you through the rest.
 
 <div className="flex justify-center my-8">
   <LLMInstructionsButton />
 </div>
 
-## MCP Setup
-
-### Cursor (one-click)
-
-<div className="flex justify-center my-8">
-  <CursorInstallButton />
-</div>
-
-### Claude Code MCP CLI
-
-```bash
-claude mcp add effect-solutions -- bunx effect-solutions-mcp@latest
-```
-
-This registers the server for the current workspace only; append `--scope user` if you want Claude Code to launch `effect-solutions` in every repo automatically.
-
-### Codex CLI Setup
-
-```bash
-codex mcp add effect-solutions -- bunx effect-solutions-mcp@latest
-```
-
-Codex stores MCP entries globally in `~/.codex/config.toml`; edit that file (or re-run `codex mcp add --scope local …`) if you need per-project overrides. Use `/mcp run effect-solutions <resource>` to fetch docs on demand.
-
 ## CLI Usage
+
+Install globally for easy access everywhere:
+
+```bash
+bun add -g effect-solutions@latest
+```
+
+Then use the CLI:
 
 ```bash
 # List topics
-bunx effect-solutions@latest list
+effect-solutions list
 
 # Show specific topics
-bunx effect-solutions@latest show project-setup tsconfig
+effect-solutions show project-setup tsconfig
+
+# Show all topics at once
+effect-solutions show --all
 ```
+
+Without global install, use `bunx effect-solutions@latest <command>`.
 
 ## Core Topics
 
