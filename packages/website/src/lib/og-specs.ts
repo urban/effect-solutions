@@ -4,29 +4,26 @@ export interface OgSpec {
   slug: string;
   title: string;
   subtitle?: string;
-  eyebrow?: string;
-  tag?: string;
-  label?: string;
-  footLeft?: string;
-  footRight?: string;
-  badge?: string;
-  accent?: string;
   background?: string;
 }
 
 function buildDocSpecs(): OgSpec[] {
   const docs = getAllDocs();
-  return docs.map((doc) => ({
+  const docSpecs = docs.map((doc) => ({
     slug: doc.slug,
-    eyebrow: "EFFECT PLAYBOOK",
-    tag: "DOCS",
     title: doc.title,
     subtitle:
       doc.description ?? "Best practices for applying Effect in production.",
-    footLeft: doc.slug.replace(/-/g, " ").toUpperCase(),
-    footRight: "effect.solutions",
-    accent: "#8be8ff",
   }));
+
+  // Add home page spec
+  const homeSpec: OgSpec = {
+    slug: "home",
+    title: "Effect Solutions",
+    subtitle: "Best practices for building Effect TypeScript applications",
+  };
+
+  return [homeSpec, ...docSpecs];
 }
 
 export function getAllOgSpecs(): OgSpec[] {

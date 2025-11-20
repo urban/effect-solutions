@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { Analytics } from "@vercel/analytics/next";
 import { SITE_URL } from "@/constants/urls";
 import { commitMono, geistMono } from "@/lib/fonts";
 import "./globals.css";
@@ -59,6 +60,7 @@ export default function RootLayout({
         className={`${commitMono.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
         {children}
+        <Analytics />
       </body>
     </html>
   );
