@@ -25,15 +25,17 @@ export function remarkHeadingIds() {
     visit(tree, "heading", (node: Heading) => {
       const text = extractText(node);
       const id = slugify(text);
-      node.data ??= {};
-      node.data.hProperties ??= {};
-
-      if (!node.data.id) {
-        node.data.id = id;
+      const data =
+        (node.data ??= {}) as Heading["data"] & {
+          id?: string;
+          hProperties?: { id?: string; [key: string]: unknown };
+        };
+      data.hProperties ??= {};
+      if (!data.id) {
+        data.id = id;
       }
-      // @ts-expect-error - hProperties can be any record
-      if (!node.data.hProperties.id) {
-        node.data.hProperties.id = id;
+      if (!data.hProperties.id) {
+        data.hProperties.id = id;
       }
     });
   };

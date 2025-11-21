@@ -3,11 +3,12 @@ name: Release
 on:
   push:
     tags:
-      - "v*"
+      - "effect-solutions@*"
+      - "effect-solutions-mcp@*"
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
   packages: write
 
@@ -15,7 +16,6 @@ jobs:
   publish:
     runs-on: macos-latest
     env:
-      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       NPM_CONFIG_PROVENANCE: true
     steps:
       - uses: actions/checkout@v4
@@ -37,4 +37,9 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Publish packages via Changesets
-        run: npx changeset publish
+        uses: changesets/action@v1
+        with:
+          publish: npx changeset publish
+          createGithubReleases: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

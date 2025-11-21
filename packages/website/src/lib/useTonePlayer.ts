@@ -15,9 +15,11 @@ interface ToneOptions {
 // Lightweight Web Audio helper for short UI tones.
 export function useTonePlayer() {
   const audioContextRef = useRef<AudioContext | null>(null);
+  const isInitializedRef = useRef(false);
+  const isPlayingRef = useRef(false);
   const { isMuted } = useSoundSettings();
 
-  const getContext = useCallback(() => {
+  const getContext = useCallback(async () => {
     if (typeof window === "undefined") {
       return null;
     }
@@ -33,30 +35,55 @@ export function useTonePlayer() {
       return null;
     }
 
+    // Create context lazily on first play attempt
     if (!audioContextRef.current) {
       audioContextRef.current = new AudioContextCtor();
     }
 
-    if (audioContextRef.current.state === "suspended") {
-      void audioContextRef.current.resume();
+    const context = audioContextRef.current;
+
+    // Only attempt to resume if suspended and we haven't failed before
+    if (context.state === "suspended") {
+      try {
+        await context.resume();
+        isInitializedRef.current = true;
+      } catch {
+        // Browser blocked - not in user gesture context
+        return null;
+      }
     }
 
-    return audioContextRef.current;
+    // Don't proceed if context isn't running
+    if (context.state !== "running") {
+      return null;
+    }
+
+    isInitializedRef.current = true;
+    return context;
   }, []);
 
   const playTone = useCallback(
-    (options?: ToneOptions) => {
+    async (options?: ToneOptions) => {
       const force = options?.force === true;
 
       if (isMuted && !force) {
         return;
       }
 
-      const context = getContext();
-
-      if (!context) {
+      // Skip if already playing (prevent overlaps/queuing)
+      if (isPlayingRef.current && !force) {
         return;
       }
+
+      // Check permission/state before attempting to play
+      const context = await getContext();
+
+      if (!context) {
+        // Context not available (no user gesture or browser blocked)
+        return;
+      }
+
+      isPlayingRef.current = true;
 
       const {
         delay = 0,
@@ -82,6 +109,12 @@ export function useTonePlayer() {
 
       oscillator.start(startAt);
       oscillator.stop(stopAt + 0.02);
+
+      // Reset playing flag after tone completes
+      const totalDuration = (delay + duration + 0.02) * 1000;
+      setTimeout(() => {
+        isPlayingRef.current = false;
+      }, totalDuration);
     },
     [getContext, isMuted],
   );

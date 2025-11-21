@@ -40,7 +40,12 @@ const iconAnimationConfig = {
     scale: 0.5,
     filter: "blur(4px)",
   },
-  transition: { type: "spring" as const, visualDuration: 0.2, bounce: 0 },
+  transition: {
+    type: "spring" as const,
+    visualDuration: 0.2,
+    bounce: 0,
+    filter: { type: "tween" as const, duration: 0.2, ease: "easeOut" },
+  },
 };
 
 export function DocHeader({ docTitles }: DocHeaderProps) {

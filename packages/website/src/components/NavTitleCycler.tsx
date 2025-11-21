@@ -62,6 +62,7 @@ export function NavTitleCycler({ title, className }: NavTitleCyclerProps) {
               type: "spring",
               visualDuration: 0.4,
               bounce: 0.3,
+              filter: { type: "tween", duration: 0.4, ease: "easeOut" },
             }}
             className="block leading-tight will-change-transform whitespace-nowrap col-start-1 row-start-1"
           >
