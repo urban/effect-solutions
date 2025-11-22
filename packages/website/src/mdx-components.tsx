@@ -1,3 +1,4 @@
+import { AsteriskIcon } from "@phosphor-icons/react/dist/ssr";
 import type { MDXComponents } from "mdx/types";
 import {
   Children,
@@ -6,13 +7,13 @@ import {
   type ReactNode,
 } from "react";
 import { codeToHtml } from "shiki";
-import { AsteriskIcon, Sparkle } from "@phosphor-icons/react/dist/ssr";
 import { CodeCopyButton } from "@/components/mdx/CodeCopyButton";
+import { CursorInstallButton } from "@/components/mdx/CursorInstallButton";
+import { DocTopicsList } from "@/components/mdx/DocTopicsList";
 import { DraftNote } from "@/components/mdx/DraftNote";
 import { FootnoteDefinitions } from "@/components/mdx/FootnoteDefinitions";
 import { FootnoteReference } from "@/components/mdx/FootnoteReference";
 import { LLMInstructionsButton } from "@/components/mdx/LLMInstructionsButton";
-import { CursorInstallButton } from "@/components/mdx/CursorInstallButton";
 import { MarginAside } from "@/components/mdx/MarginAside";
 import { MDXLink } from "@/components/mdx/MDXLink";
 import { cn } from "@/lib/cn";
@@ -170,6 +171,7 @@ export function useMDXComponents(
     a: MDXLink,
     MarginAside,
     DraftNote,
+    DocTopicsList,
     LLMInstructionsButton: instructions
       ? () => <LLMInstructionsButton instructions={instructions} />
       : LLMInstructionsButton,
