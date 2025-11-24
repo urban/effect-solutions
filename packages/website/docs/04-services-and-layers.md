@@ -52,7 +52,7 @@ A Layer is an implementation of a service. Layers handle:
 
 ```typescript
 import { HttpClient, HttpClientResponse } from "@effect/platform"
-import { Schema } from "effect"
+import { Context, Effect, Layer, Schema } from "effect"
 
 const UserId = Schema.String.pipe(Schema.brand("UserId"))
 type UserId = typeof UserId.Type
@@ -63,17 +63,25 @@ class User extends Schema.Class<User>("User")({
   email: Schema.String,
 }) {}
 
+class UserNotFoundError extends Schema.TaggedError<UserNotFoundError>()(
+  "UserNotFoundError",
+  {
+    id: UserId,
+  }
+) {}
+
 class Analytics extends Context.Tag("@app/Analytics")<
   Analytics,
   {
-    readonly track: (event: string, data: unknown) => Effect.Effect<void>
+    readonly track: (event: string, data: Record<string, unknown>) => Effect.Effect<void>
   }
 >() {}
 
 class Users extends Context.Tag("@app/Users")<
   Users,
   {
-    readonly findById: (id: UserId) => Effect.Effect<User, Error>
+    readonly findById: (id: UserId) => Effect.Effect<User, UserNotFoundError>
+    readonly all: () => Effect.Effect<readonly User[]>
   }
 >() {
   static readonly layer = Layer.effect(
@@ -83,17 +91,27 @@ class Users extends Context.Tag("@app/Users")<
       const http = yield* HttpClient.HttpClient
       const analytics = yield* Analytics
 
-      // 2. define the service methods
+      // 2. define the service methods with Effect.fn for call-site tracing
       const findById = Effect.fn("Users.findById")(function* (id: UserId) {
         yield* analytics.track("user.find", { id })
         const response = yield* http.get(`https://api.example.com/users/${id}`)
         return yield* HttpClientResponse.schemaBodyJson(User)(response)
       }).pipe(
-        Effect.mapError(() => new Error("Failed to fetch user"))
+        Effect.catchTag("ResponseError", (error) =>
+          error.response.status === 404
+            ? UserNotFoundError.make({ id })
+            : Effect.die(error)
+        )
       )
 
+      // Use Effect.fn even for nullary methods (thunks) to enable tracing
+      const all = Effect.fn("Users.all")(function* () {
+        const response = yield* http.get("https://api.example.com/users")
+        return yield* HttpClientResponse.schemaBodyJson(Schema.Array(User))(response)
+      })
+
       // 3. return the service
-      return Users.of({ findById })
+      return Users.of({ findById, all })
     })
   )
 }
@@ -122,6 +140,12 @@ const TicketId = Schema.String.pipe(Schema.brand("TicketId"))
 type TicketId = typeof TicketId.Type
 
 // Domain models
+class User extends Schema.Class<User>("User")({
+  id: UserId,
+  name: Schema.String,
+  email: Schema.String,
+}) {}
+
 class Registration extends Schema.Class<Registration>("Registration")({
   id: RegistrationId,
   eventId: EventId,
@@ -137,13 +161,17 @@ class Ticket extends Schema.Class<Ticket>("Ticket")({
 }) {}
 
 // Leaf services: contracts only
+class Users extends Context.Tag("@app/Users")<
+  Users,
+  {
+    readonly findById: (id: UserId) => Effect.Effect<User>
+  }
+>() {}
+
 class Tickets extends Context.Tag("@app/Tickets")<
   Tickets,
   {
-    readonly issue: (
-      eventId: EventId,
-      userId: UserId
-    ) => Effect.Effect<Ticket>
+    readonly issue: (eventId: EventId, userId: UserId) => Effect.Effect<Ticket>
     readonly validate: (ticketId: TicketId) => Effect.Effect<boolean>
   }
 >() {}
@@ -151,21 +179,7 @@ class Tickets extends Context.Tag("@app/Tickets")<
 class Emails extends Context.Tag("@app/Emails")<
   Emails,
   {
-    readonly send: (
-      to: string,
-      subject: string,
-      body: string
-    ) => Effect.Effect<void>
-  }
->() {}
-
-class Analytics extends Context.Tag("@app/Analytics")<
-  Analytics,
-  {
-    readonly track: (
-      event: string,
-      properties: Record<string, unknown>
-    ) => Effect.Effect<void>
+    readonly send: (to: string, subject: string, body: string) => Effect.Effect<void>
   }
 >() {}
 
@@ -173,21 +187,19 @@ class Analytics extends Context.Tag("@app/Analytics")<
 class Events extends Context.Tag("@app/Events")<
   Events,
   {
-    readonly register: (
-      eventId: EventId,
-      userId: UserId
-    ) => Effect.Effect<Registration>
+    readonly register: (eventId: EventId, userId: UserId) => Effect.Effect<Registration>
   }
 >() {
   static readonly layer = Layer.effect(
     Events,
     Effect.gen(function* () {
+      const users = yield* Users
       const tickets = yield* Tickets
       const emails = yield* Emails
-      const analytics = yield* Analytics
 
       const register = Effect.fn("Events.register")(
         function* (eventId: EventId, userId: UserId) {
+          const user = yield* users.findById(userId)
           const ticket = yield* tickets.issue(eventId, userId)
           const now = yield* Clock.currentTimeMillis
 
@@ -200,16 +212,10 @@ class Events extends Context.Tag("@app/Events")<
           })
 
           yield* emails.send(
-            `user-${userId}@example.com`,
+            user.email,
             "Event Registration Confirmed",
             `Your ticket code: ${ticket.code}`
           )
-
-          yield* analytics.track("event.registered", {
-            eventId,
-            userId,
-            ticketId: ticket.id,
-          })
 
           return registration
         }
@@ -221,11 +227,11 @@ class Events extends Context.Tag("@app/Events")<
 }
 ```
 
-> **Note:** This code won't run yet since Tickets, Email, and Analytics lack implementations. But Events orchestration logic is real TypeScript that compiles and lets you model dependencies before writing production layers.
+> **Note:** This code won't run yet since Users, Tickets, and Emails lack implementations. But Events orchestration logic is real TypeScript that compiles and lets you model dependencies before writing production layers.
 
 Benefits:
 
-- Leaf service contracts are explicit. Tickets, Email, and Analytics return typed data (no parsing needed).
+- Leaf service contracts are explicit. Users, Tickets, and Emails return typed data (no parsing needed).
 - Higher-level orchestration (Events) coordinates multiple services cleanly.
 - Type-checks immediately even though leaf services aren't implemented yet.
 - Adding production implementations later doesn't change Events code.

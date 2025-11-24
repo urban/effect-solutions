@@ -49,6 +49,20 @@ const error = ValidationError.make({
 - Custom methods via class
 - Sensible default `message` when you don't declare one
 
+**Note:** `Schema.TaggedError` creates yieldable errors that can be used directly without `Effect.fail()`:
+
+```typescript
+// ✅ Good: Yieldable errors can be used directly
+return error.response.status === 404
+  ? UserNotFoundError.make({ id })
+  : Effect.die(error)
+
+// ❌ Redundant: no need to wrap with Effect.fail
+return error.response.status === 404
+  ? Effect.fail(UserNotFoundError.make({ id }))
+  : Effect.die(error)
+```
+
 ## Recovering from Errors
 
 Effect provides several functions for recovering from errors. Use these to handle errors and continue program execution.
@@ -110,10 +124,10 @@ class ValidationError extends Schema.TaggedError<ValidationError>()(
 ) {}
 
 const program: Effect.Effect<string, HttpError | ValidationError> =
-  Effect.fail(HttpError.make({
+  HttpError.make({
     statusCode: 500,
     message: "Internal server error",
-  }))
+  })
 
 const recovered: Effect.Effect<string, ValidationError> = program.pipe(
   Effect.catchTag("HttpError", (error) =>
@@ -148,10 +162,10 @@ class ValidationError extends Schema.TaggedError<ValidationError>()(
 ) {}
 
 const program: Effect.Effect<string, HttpError | ValidationError> =
-  Effect.fail(HttpError.make({
+  HttpError.make({
     statusCode: 500,
     message: "Internal server error",
-  }))
+  })
 
 const recovered: Effect.Effect<string, never> = program.pipe(
   Effect.catchTags({

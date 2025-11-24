@@ -30,7 +30,7 @@ const program = Effect.gen(function* () {
 
 ## Effect.fn
 
-Use `Effect.fn` with generator functions for traced, named effects. `Effect.fn` automatically creates a span with the provided name:
+Use `Effect.fn` with generator functions for traced, named effects. `Effect.fn` traces where the function is called from, not just where it's defined:
 
 ```typescript
 import { Effect } from "effect"
@@ -52,8 +52,8 @@ const processUser = Effect.fn("processUser")(function* (userId: string) {
 
 **Benefits:**
 
-- Automatically creates named spans for tracing/debugging
+- Call-site tracing for each invocation
 - Stack traces with location details
 - Clean signatures
 
-**Note:** Since `Effect.fn` automatically creates a span, use `Effect.gen` when you need to add custom spans inside the function (e.g., with `Effect.withSpan`).
+**Note:** `Effect.fn` automatically creates spans that integrate with telemetry systems. <!-- When using OpenTelemetry, these spans appear in your traces. See [Observability](/observability) for details. -->
