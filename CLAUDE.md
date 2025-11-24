@@ -93,7 +93,7 @@ The CLI (`packages/cli/`) provides offline access to documentation:
 ```bash
 bunx effect-solutions list          # List all topics
 bunx effect-solutions show <slug>   # Show specific topic
-bunx effect-solutions search <term> # Search topics
+bunx effect-solutions open-issue    # Leave feedback
 ```
 
 Built with Effect CLI and Effect Schema. Tests in `packages/cli/src/cli.test.ts` validate all commands.
@@ -173,5 +173,5 @@ The Effect Solutions CLI provides curated best practices and patterns for Effect
 
 - `effect-solutions list` - List all available topics
 - `effect-solutions show <slug...>` - Read one or more topics
-- `effect-solutions search <term>` - Search topics by keyword
+- `effect-solutions open-issue` - Leave feedback
 <!-- effect-solutions:end -->

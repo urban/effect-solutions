@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "effect-best-practices",
@@ -26,7 +27,7 @@
     },
     "packages/cli": {
       "name": "effect-solutions",
-      "version": "0.4.8",
+      "version": "0.4.11",
       "bin": {
         "effect-solutions": "./bin.js",
       },
@@ -47,7 +48,7 @@
     },
     "packages/website": {
       "name": "@effect-best-practices/website",
-      "version": "0.4.8",
+      "version": "0.4.11",
       "dependencies": {
         "@phosphor-icons/react": "^2.1.10",
         "@tailwindcss/typography": "^0.5.19",

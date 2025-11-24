@@ -42,9 +42,6 @@ effect-solutions list
 # Show specific topics
 effect-solutions show project-setup tsconfig
 
-# Search topics
-effect-solutions search error
-
 # Leave feedback
 effect-solutions open-issue
 ```
