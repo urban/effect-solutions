@@ -15,19 +15,24 @@ Define domain errors with `Schema.TaggedError`:
 ```typescript
 import { Schema } from "effect"
 
-class ValidationError extends Schema.TaggedError<ValidationError>()("ValidationError", {
-  field: Schema.String,
-  message: Schema.String,
-}) {
-  get description(): string {
-    return `${this.field}: ${this.message}`
+class ValidationError extends Schema.TaggedError<ValidationError>()(
+  "ValidationError",
+  {
+    field: Schema.String,
+    message: Schema.String,
   }
-}
+) {}
 
-class NotFoundError extends Schema.TaggedError<NotFoundError>()("NotFoundError", {
-  resource: Schema.String,
-  id: Schema.String,
-}) {}
+class NotFoundError extends Schema.TaggedError<NotFoundError>()(
+  "NotFoundError",
+  {
+    resource: Schema.String,
+    id: Schema.String,
+  }
+) {}
+
+const AppError = Schema.Union(ValidationError, NotFoundError)
+type AppError = typeof AppError.Type
 
 // Usage
 const error = ValidationError.make({
@@ -42,61 +47,136 @@ const error = ValidationError.make({
 - Type-safe
 - Built-in `_tag` for pattern matching
 - Custom methods via class
+- Sensible default `message` when you don't declare one
 
-## Pattern Matching on Errors
+## Recovering from Errors
 
-Use `Match.tag` for exhaustive error handling:
+Effect provides several functions for recovering from errors. Use these to handle errors and continue program execution.
+
+### catchAll
+
+Handle all errors by providing a fallback effect:
 
 ```typescript
-import { Match, Schema } from "effect"
+import { Effect, Schema } from "effect"
 
-class ValidationError extends Schema.TaggedError<ValidationError>()("ValidationError", {
-  field: Schema.String,
-  message: Schema.String,
-}) {
-  get description(): string {
-    return `${this.field}: ${this.message}`
+class HttpError extends Schema.TaggedError<HttpError>()(
+  "HttpError",
+  {
+    statusCode: Schema.Number,
+    message: Schema.String,
   }
-}
+) {}
 
-class NotFoundError extends Schema.TaggedError<NotFoundError>()("NotFoundError", {
-  resource: Schema.String,
-  id: Schema.String,
-}) {}
+class ValidationError extends Schema.TaggedError<ValidationError>()(
+  "ValidationError",
+  {
+    message: Schema.String,
+  }
+) {}
 
-type AppError = ValidationError | NotFoundError
+declare const program: Effect.Effect<string, HttpError | ValidationError>
 
-// Pattern 1: Match.value - inline matching
-const handleErrorInline = (error: AppError) =>
-  Match.value(error).pipe(
-    Match.tag("ValidationError", (e) => `Validation failed: ${e.description}`),
-    Match.tag("NotFoundError", (e) => `${e.resource} with id ${e.id} not found`),
-    Match.exhaustive
+const recovered: Effect.Effect<string, never> = program.pipe(
+  Effect.catchAll((error) =>
+    Effect.gen(function* () {
+      yield* Effect.logError("Error occurred", error)
+      return `Recovered from ${error.name}`
+    })
   )
-
-// Pattern 2: Match.type - extract matcher (compiled once, reusable)
-const errorMatcher = Match.type<AppError>().pipe(
-  Match.tag("ValidationError", (e) => `Validation failed: ${e.description}`),
-  Match.tag("NotFoundError", (e) => `${e.resource} with id ${e.id} not found`),
-  Match.exhaustive
 )
+```
 
-const handleError = (error: AppError) => errorMatcher(error)
+### catchTag
+
+Handle specific errors by their `_tag`.
+
+```typescript
+import { Effect, Schema } from "effect"
+
+class HttpError extends Schema.TaggedError<HttpError>()(
+  "HttpError",
+  {
+    statusCode: Schema.Number,
+    message: Schema.String,
+  }
+) {}
+
+class ValidationError extends Schema.TaggedError<ValidationError>()(
+  "ValidationError",
+  {
+    message: Schema.String,
+  }
+) {}
+
+const program: Effect.Effect<string, HttpError | ValidationError> =
+  Effect.fail(HttpError.make({
+    statusCode: 500,
+    message: "Internal server error",
+  }))
+
+const recovered: Effect.Effect<string, ValidationError> = program.pipe(
+  Effect.catchTag("HttpError", (error) =>
+    Effect.gen(function* () {
+      yield* Effect.logWarning(`HTTP ${error.statusCode}: ${error.message}`)
+      return "Recovered from HttpError"
+    })
+  )
+)
+```
+
+### catchTags
+
+Handle multiple error types at once.
+
+```typescript
+import { Effect, Schema } from "effect"
+
+class HttpError extends Schema.TaggedError<HttpError>()(
+  "HttpError",
+  {
+    statusCode: Schema.Number,
+    message: Schema.String,
+  }
+) {}
+
+class ValidationError extends Schema.TaggedError<ValidationError>()(
+  "ValidationError",
+  {
+    message: Schema.String,
+  }
+) {}
+
+const program: Effect.Effect<string, HttpError | ValidationError> =
+  Effect.fail(HttpError.make({
+    statusCode: 500,
+    message: "Internal server error",
+  }))
+
+const recovered: Effect.Effect<string, never> = program.pipe(
+  Effect.catchTags({
+    HttpError: () => Effect.succeed("Recovered from HttpError"),
+    ValidationError: () => Effect.succeed("Recovered from ValidationError")
+  })
+)
 ```
 
 ## Schema.Defect - Wrapping Unknown Errors
 
-Use `Schema.Defect` to wrap unknown errors from external libraries:
+Use `Schema.Defect` to wrap unknown errors from external libraries.
 
 ```typescript
 import { Schema, Effect } from "effect"
 
-class ApiError extends Schema.TaggedError<ApiError>()("ApiError", {
-  endpoint: Schema.String,
-  statusCode: Schema.Number,
-  // Wrap the underlying error from fetch/axios/etc
-  cause: Schema.Defect
-}) {}
+class ApiError extends Schema.TaggedError<ApiError>()(
+  "ApiError",
+  {
+    endpoint: Schema.String,
+    statusCode: Schema.Number,
+    // Wrap the underlying error from fetch/axios/etc
+    error: Schema.Defect,
+  }
+) {}
 
 // Usage - catching errors from external libraries
 const fetchUser = (id: string) =>
@@ -105,20 +185,9 @@ const fetchUser = (id: string) =>
     catch: (error) => ApiError.make({
       endpoint: `/api/users/${id}`,
       statusCode: 500,
-      cause: error // Unknown error from fetch wrapped in Schema.Defect
+      error
     })
   })
-
-// Downstream use Schema.encodeSync(Schema.Defect) for stable logging / serialization
-const formatDefect = Schema.encodeSync(Schema.Defect)
-
-const program = fetchUser("user-123").pipe(
-  Effect.catchTag("ApiError", ({ endpoint, statusCode, cause }) =>
-    Effect.logError(`Request ${endpoint} failed (${statusCode})`, {
-      cause: formatDefect(cause),
-    })
-  )
-)
 ```
 
 **Schema.Defect handles:**
@@ -136,7 +205,7 @@ const program = fetchUser("user-123").pipe(
 
 ## Pattern Summary
 
-1. **Domain errors** → `Schema.TaggedError()`
-2. **Error matching** → `Match.tag()` with exhaustive checking
+1. **Domain errors** → `Schema.TaggedError()` with `Schema.Union()` for error unions
+2. **Error recovery** → `Effect.catchTag()` for specific errors, `Effect.catchTags()` for multiple, `Effect.catchAll()` for all
 3. **Wrap unknown errors** → `Schema.Defect` (from external libraries)
 4. **Always** → Make errors serializable for production systems

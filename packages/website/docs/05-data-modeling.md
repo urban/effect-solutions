@@ -1,10 +1,10 @@
 ---
-title: Data Types
-description: "Schema classes, unions, brands, and JSON serialization"
+title: Data Modeling
+description: "Schema classes, unions, brands, pattern matching, and JSON serialization"
 order: 5
 ---
 
-# Data Types
+# Data Modeling
 
 TypeScript's built-in tools for modeling data are limited. Effect's Schema library provides a robust alternative with runtime validation, serialization, and type safety built in.
 

@@ -97,7 +97,7 @@ export function useMDXComponents(
     h2: ({ children, className, ...props }) => (
       <h2
         className={cn(
-          "text-xl font-semibold leading-snug text-neutral-100 uppercase tracking-wide flex flex-col gap-6",
+          "text-xl font-semibold leading-snug text-neutral-100 tracking-wide flex flex-col gap-6",
           className,
         )}
         {...props}

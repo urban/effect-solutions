@@ -21,7 +21,7 @@
     "version": "changeset version && bun install",
     "release": "GITHUB_TOKEN=$(gh auth token) changeset version && changeset tag && git push --follow-tags",
     "test": "bun test",
-    "check": "biome check . --write && bunx tsc --build --force"
+    "check": "biome check . --write && bunx tsc --build --force && bun test"
   },
   "dependencies": {
     "@effect/platform": "^0.93.3",

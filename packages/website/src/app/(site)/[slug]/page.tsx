@@ -10,6 +10,7 @@ import { SITE_DEPLOYMENT_URL } from "@/constants/urls";
 import { FootnoteProvider } from "@/lib/footnote-context";
 import { generateLLMInstructions } from "@/lib/llm-instructions";
 import { getAllDocSlugs, getDocBySlug, normalizeDocSlug } from "@/lib/mdx";
+import { remarkCodeHide } from "@/lib/remark-code-hide";
 import { remarkHeadingIds } from "@/lib/remark-heading-ids";
 import { useMDXComponents } from "@/mdx-components";
 
@@ -95,7 +96,11 @@ export default async function DocPage({ params }: DocPageProps) {
                   components={components}
                   options={{
                     mdxOptions: {
-                      remarkPlugins: [remarkGfm, remarkHeadingIds],
+                      remarkPlugins: [
+                        remarkGfm,
+                        remarkHeadingIds,
+                        remarkCodeHide,
+                      ],
                     },
                   }}
                 />

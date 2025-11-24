@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowUpRightIcon } from "@phosphor-icons/react";
 import {
   ArrowRightIcon,
   ArrowSquareOutIcon,
@@ -8,7 +9,6 @@ import Link from "next/link";
 import type { AnchorHTMLAttributes, MouseEventHandler, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { useLessonNavSfx } from "@/lib/useLessonNavSfx";
-import { ArrowUpRightIcon } from "@phosphor-icons/react";
 
 interface MDXLinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
   href?: string;
@@ -23,7 +23,8 @@ export function MDXLink(props: MDXLinkProps) {
     (href?.startsWith("/") && !href.startsWith("//")) || href?.startsWith("./");
   const isExternal =
     href?.startsWith("http://") || href?.startsWith("https://");
-  const iconClassName = "text-blue-400/70 group-hover:text-blue-300/70 font-bold";
+  const iconClassName =
+    "text-blue-400/70 group-hover:text-blue-300/70 font-bold";
 
   const linkClassName = cn(
     "group text-blue-400 hover:text-blue-300 no-underline cursor-pointer inline-flex items-center gap-1",
