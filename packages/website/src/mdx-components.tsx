@@ -244,6 +244,52 @@ export function useMDXComponents(
     aside: ({ children, ...props }) => (
       <MarginAside {...props}>{children}</MarginAside>
     ),
+    table: ({ children, className, ...props }) => (
+      <div className="my-6 border-y border-neutral-800 overflow-x-auto">
+        <table
+          className={cn("w-full text-[1.05rem] text-neutral-300", className)}
+          {...props}
+        >
+          {children}
+        </table>
+      </div>
+    ),
+    thead: ({ children, ...props }) => (
+      <thead
+        className="border-b border-neutral-800 text-neutral-100 bg-neutral-900/30"
+        {...props}
+      >
+        {children}
+      </thead>
+    ),
+    tbody: ({ children, ...props }) => <tbody {...props}>{children}</tbody>,
+    tr: ({ children, ...props }) => (
+      <tr className="border-b border-neutral-800 last:border-b-0" {...props}>
+        {children}
+      </tr>
+    ),
+    th: ({ children, className, ...props }) => (
+      <th
+        className={cn(
+          "px-6 py-3 text-left font-semibold text-neutral-100 border-r border-neutral-800 last:border-r-0",
+          className,
+        )}
+        {...props}
+      >
+        {children}
+      </th>
+    ),
+    td: ({ children, className, ...props }) => (
+      <td
+        className={cn(
+          "px-6 py-3 border-r border-neutral-800 last:border-r-0",
+          className,
+        )}
+        {...props}
+      >
+        {children}
+      </td>
+    ),
 
     ...restComponents,
   };

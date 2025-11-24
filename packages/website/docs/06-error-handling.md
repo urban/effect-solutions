@@ -175,6 +175,29 @@ const recovered: Effect.Effect<string, never> = program.pipe(
 )
 ```
 
+## Expected Errors vs Defects
+
+Effect tracks errors in the type system (`Effect<A, E, R>`) so callers know what can go wrong and can recover. But tracking only matters if recovery is possible. When there's no sensible way to recover, use a defect instead: it terminates the fiber and you handle it once at the system boundary (logging, crash reporting, graceful shutdown).
+
+**Use typed errors** for domain failures the caller can handle: validation errors, "not found", permission denied, rate limits.
+
+**Use defects** for unrecoverable situations: bugs and invariant violations.
+
+```typescript
+import { Effect } from "effect"
+// hide-start
+declare const loadConfig: Effect.Effect<{ port: number }, Error>
+// hide-end
+
+// At app entry: if config fails, nothing can proceed
+const main = Effect.gen(function* () {
+  const config = yield* loadConfig.pipe(Effect.orDie)
+  yield* Effect.log(`Starting on port ${config.port}`)
+})
+```
+
+**When to catch defects:** Almost never. Only at system boundaries for logging/diagnostics. Use `Effect.exit` to inspect or `Effect.catchAllDefect` if you must recover (e.g., plugin sandboxing).
+
 ## Schema.Defect - Wrapping Unknown Errors
 
 Use `Schema.Defect` to wrap unknown errors from external libraries.
