@@ -218,6 +218,234 @@ describe("04-services-and-layers", () => {
     );
   });
 
+  describe("Effect.fn within Services", () => {
+    it.effect("uses Effect.fn for service methods with tracing", () =>
+      Effect.gen(function* () {
+        class UserRepo extends Context.Tag("@app/UserRepo")<
+          UserRepo,
+          {
+            readonly findById: (
+              id: string,
+            ) => Effect.Effect<{ id: string; name: string }>;
+            readonly all: () => Effect.Effect<
+              Array<{ id: string; name: string }>
+            >;
+          }
+        >() {
+          static readonly layer = Layer.succeed(UserRepo, {
+            findById: Effect.fn("UserRepo.findById")(function* (id: string) {
+              yield* Effect.logDebug(`Finding user ${id}`);
+              return { id, name: `User ${id}` };
+            }),
+            // Effect.fn even for nullary methods (thunks) to enable tracing
+            all: Effect.fn("UserRepo.all")(function* () {
+              yield* Effect.logDebug("Finding all users");
+              return [
+                { id: "1", name: "Alice" },
+                { id: "2", name: "Bob" },
+              ];
+            }),
+          });
+        }
+
+        const program = Effect.gen(function* () {
+          const repo = yield* UserRepo;
+          const user = yield* repo.findById("123");
+          const allUsers = yield* repo.all();
+          return { user, allUsers };
+        });
+
+        const result = yield* program.pipe(Effect.provide(UserRepo.layer));
+
+        strictEqual(result.user.id, "123");
+        strictEqual(result.user.name, "User 123");
+        strictEqual(result.allUsers.length, 2);
+      }),
+    );
+  });
+
+  describe("Service Orchestration", () => {
+    it.effect("orchestrates multiple leaf services", () =>
+      Effect.gen(function* () {
+        // Leaf services
+        class Users extends Context.Tag("@app/Users")<
+          Users,
+          {
+            readonly findById: (
+              id: string,
+            ) => Effect.Effect<{ id: string; name: string }>;
+          }
+        >() {}
+
+        class Notifications extends Context.Tag("@app/Notifications")<
+          Notifications,
+          {
+            readonly send: (
+              userId: string,
+              message: string,
+            ) => Effect.Effect<void>;
+          }
+        >() {}
+
+        class Analytics extends Context.Tag("@app/Analytics")<
+          Analytics,
+          {
+            readonly track: (
+              event: string,
+              data: unknown,
+            ) => Effect.Effect<void>;
+          }
+        >() {}
+
+        // Higher-level orchestration service
+        class UserService extends Context.Tag("@app/UserService")<
+          UserService,
+          {
+            readonly activate: (
+              userId: string,
+            ) => Effect.Effect<{ id: string; name: string }>;
+          }
+        >() {
+          static readonly layer = Layer.effect(
+            UserService,
+            Effect.gen(function* () {
+              const users = yield* Users;
+              const notifications = yield* Notifications;
+              const analytics = yield* Analytics;
+
+              const activate = Effect.fn("UserService.activate")(function* (
+                userId: string,
+              ) {
+                const user = yield* users.findById(userId);
+                yield* notifications.send(userId, "Account activated!");
+                yield* analytics.track("user.activated", { userId });
+                return user;
+              });
+
+              return UserService.of({ activate });
+            }),
+          );
+        }
+
+        // Test implementations
+        const events: string[] = [];
+
+        const testUsers = Layer.succeed(Users, {
+          findById: (id) => Effect.succeed({ id, name: `User ${id}` }),
+        });
+
+        const testNotifications = Layer.succeed(Notifications, {
+          send: (userId, message) =>
+            Effect.sync(() => {
+              events.push(`notify:${userId}:${message}`);
+            }),
+        });
+
+        const testAnalytics = Layer.succeed(Analytics, {
+          track: (event, data) =>
+            Effect.sync(() => {
+              events.push(`track:${event}:${JSON.stringify(data)}`);
+            }),
+        });
+
+        const testLayers = Layer.merge(
+          testUsers,
+          Layer.merge(testNotifications, testAnalytics),
+        );
+
+        const program = Effect.gen(function* () {
+          const service = yield* UserService;
+          return yield* service.activate("user-123");
+        });
+
+        const result = yield* program.pipe(
+          Effect.provide(UserService.layer),
+          Effect.provide(testLayers),
+        );
+
+        strictEqual(result.id, "user-123");
+        strictEqual(result.name, "User user-123");
+        strictEqual(events.length, 2);
+        strictEqual(events[0], "notify:user-123:Account activated!");
+        strictEqual(events[1], 'track:user.activated:{"userId":"user-123"}');
+      }),
+    );
+
+    it.effect(
+      "design with services first - contracts before implementations",
+      () =>
+        Effect.gen(function* () {
+          // Define service contracts without implementations
+          class EmailService extends Context.Tag("@app/EmailService")<
+            EmailService,
+            { readonly send: (to: string, body: string) => Effect.Effect<void> }
+          >() {}
+
+          class PaymentService extends Context.Tag("@app/PaymentService")<
+            PaymentService,
+            {
+              readonly charge: (
+                userId: string,
+                amount: number,
+              ) => Effect.Effect<string>;
+            }
+          >() {}
+
+          // Higher-level service that uses the contracts
+          class CheckoutService extends Context.Tag("@app/CheckoutService")<
+            CheckoutService,
+            {
+              readonly process: (
+                userId: string,
+                amount: number,
+              ) => Effect.Effect<string>;
+            }
+          >() {
+            static readonly layer = Layer.effect(
+              CheckoutService,
+              Effect.gen(function* () {
+                const email = yield* EmailService;
+                const payment = yield* PaymentService;
+
+                const process = Effect.fn("CheckoutService.process")(function* (
+                  userId: string,
+                  amount: number,
+                ) {
+                  const txId = yield* payment.charge(userId, amount);
+                  yield* email.send(userId, `Payment successful: ${txId}`);
+                  return txId;
+                });
+
+                return CheckoutService.of({ process });
+              }),
+            );
+          }
+
+          // Implement test versions later
+          const testEmail = Layer.succeed(EmailService, {
+            send: (_to, _body) => Effect.void,
+          });
+
+          const testPayment = Layer.succeed(PaymentService, {
+            charge: (_userId, _amount) => Effect.succeed("tx-123"),
+          });
+
+          // The orchestration layer (CheckoutService) works without changing
+          const program = Effect.gen(function* () {
+            const checkout = yield* CheckoutService;
+            return yield* checkout.process("user-1", 100);
+          });
+
+          const result = yield* program.pipe(
+            Effect.provide(CheckoutService.layer),
+            Effect.provide(Layer.merge(testEmail, testPayment)),
+          );
+
+          strictEqual(result, "tx-123");
+        }),
+    );
+  });
+
   describe("Service Composition", () => {
     it.effect("merges independent layers", () =>
       Effect.gen(function* () {
