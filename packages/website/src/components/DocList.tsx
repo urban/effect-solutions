@@ -219,6 +219,34 @@ export function DocList({ docs }: DocListProps) {
 
   return (
     <section>
+      <div className="px-6 py-8 bg-neutral-900/30 border-b border-neutral-800">
+        <p className="text-neutral-300 leading-relaxed mb-4">
+          <strong className="font-semibold text-neutral-100">
+            Effect Solutions
+          </strong>{" "}
+          is a high-level, prescriptive guide for writing idiomatic Effect
+          programs.
+        </p>
+        <p className="text-neutral-300 leading-relaxed">
+          Begin with{" "}
+          <Link
+            href="/quick-start"
+            className="group text-blue-400 hover:text-blue-300 no-underline cursor-pointer inline-flex items-center gap-1"
+            onMouseEnter={handleMouseEnter}
+            onClick={handleClick}
+          >
+            Quick Start
+            <span className="text-blue-400/70 group-hover:text-blue-300/70 font-bold">
+              →
+            </span>
+          </Link>{" "}
+          and run the{" "}
+          <strong className="font-semibold text-neutral-100">
+            Agent-Guided Setup
+          </strong>
+          .
+        </p>
+      </div>
       {GROUP_DISPLAY_ORDER.filter((group) => groupedDocs[group]?.length).map(
         (group) => (
           <div key={group}>
