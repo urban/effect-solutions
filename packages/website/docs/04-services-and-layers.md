@@ -251,7 +251,6 @@ class Database extends Context.Tag("@app/Database")<
     }
 
     const query = (sql: string) => Effect.succeed(Object.values(records))
-
     const execute = (sql: string) => Console.log(`Test execute: ${sql}`)
 
     return Database.of({ query, execute })

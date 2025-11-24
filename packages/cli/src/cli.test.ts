@@ -12,8 +12,8 @@ describe("effect-solutions CLI docs", () => {
       expect(listOutput).toContain(doc.title);
       if (doc.description) {
         // Description might be wrapped, so check for key words instead
-        const words = doc.description.split(/\s+/).filter(w => w.length > 3);
-        const hasKeyWords = words.some(word => listOutput.includes(word));
+        const words = doc.description.split(/\s+/).filter((w) => w.length > 3);
+        const hasKeyWords = words.some((word) => listOutput.includes(word));
         expect(hasKeyWords).toBe(true);
       }
     }
