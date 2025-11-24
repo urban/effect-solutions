@@ -36,6 +36,8 @@
   "devDependencies": {
     "@changesets/changelog-github": "^0.5.1",
     "@changesets/cli": "^2.29.7",
+    "@effect/cluster": "^0.53.5",
+    "@effect/platform-node": "^0.101.1",
     "@effect/vitest": "^0.27.0",
     "vitest": "^4.0.13"
   }
