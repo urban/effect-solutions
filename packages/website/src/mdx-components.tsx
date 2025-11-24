@@ -26,6 +26,35 @@ type FootnoteRefElementProps = {
   "data-footnote-ref"?: string | number | boolean;
 };
 
+const slugify = (value: string) =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/--+/g, "-");
+
+const headingIdFromChildren = (
+  id: unknown,
+  children: ReactNode,
+): string | undefined => {
+  if (typeof id === "string" && id.length > 0) return id;
+
+  const text = Children.toArray(children)
+    .map((child) => {
+      if (typeof child === "string") return child;
+      if (isValidElement<{ children?: ReactNode }>(child)) {
+        const childChildren = child.props.children;
+        if (typeof childChildren === "string") return childChildren;
+      }
+      return "";
+    })
+    .join(" ")
+    .trim();
+
+  return text ? slugify(text) : undefined;
+};
+
 async function CodeBlock({
   children,
   className,
@@ -93,33 +122,45 @@ export function useMDXComponents(
         {children}
       </h1>
     ),
-    h2: ({ children, className, ...props }) => (
-      <h2
-        className={cn(
-          "text-xl font-semibold leading-snug text-neutral-100 tracking-wide flex flex-col gap-6",
-          className,
-        )}
-        {...props}
-      >
-        <span
-          className="w-full h-6 border-y border-neutral-800 block"
-          style={{
-            backgroundImage:
-              "repeating-linear-gradient(-45deg, transparent, transparent 8px, rgb(38, 38, 38) 8px, rgb(38, 38, 38) 9px)",
-          }}
-        />
-        <span className="flex items-center gap-3 px-6">
-          <AsteriskIcon
-            size={18}
-            weight="bold"
-            className="text-neutral-500 shrink-0"
+    h2: ({ children, className, id, ...props }) => {
+      const headingId = headingIdFromChildren(id, children);
+
+      return (
+        <h2
+          id={headingId}
+          className={cn(
+            "text-xl font-semibold leading-snug text-neutral-100 tracking-wide flex flex-col gap-6 scroll-mt-[128px]",
+            className,
+          )}
+          {...props}
+        >
+          <span
+            className="w-full h-6 border-y border-neutral-800 block"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(-45deg, transparent, transparent 8px, rgb(38, 38, 38) 8px, rgb(38, 38, 38) 9px)",
+            }}
           />
-          {children}
-        </span>
-      </h2>
-    ),
-    h3: ({ children, className, ...props }) => (
+          <a
+            className="group/anchor flex items-center gap-3 px-6 text-inherit no-underline hover:opacity-90 cursor-default"
+            href={headingId ? `#${headingId}` : undefined}
+            aria-label={headingId ? `Link to section ${headingId}` : undefined}
+          >
+            <AsteriskIcon
+              size={18}
+              weight="bold"
+              className="text-neutral-500 shrink-0"
+            />
+            <span className="underline-offset-4 decoration-neutral-700">
+              {children}
+            </span>
+          </a>
+        </h2>
+      );
+    },
+    h3: ({ children, className, id, ...props }) => (
       <h3
+        id={headingIdFromChildren(id, children)}
         className={cn(
           "text-lg font-semibold leading-snug text-neutral-200 mx-6",
           className,

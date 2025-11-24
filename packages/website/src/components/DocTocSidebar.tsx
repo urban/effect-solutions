@@ -245,14 +245,10 @@ export function DocTocSidebar({
         "(prefers-reduced-motion: reduce)",
       ).matches;
 
-      // Align target below sticky header (approx 112px = header + padding & separator).
-      const targetTop =
-        target.getBoundingClientRect().top + window.scrollY - 112;
+      const behavior: ScrollBehavior = prefersReducedMotion ? "auto" : "smooth";
 
-      window.scrollTo({
-        top: targetTop,
-        behavior: prefersReducedMotion ? "auto" : "smooth",
-      });
+      // Use scroll-margin on headings for consistent offset from the sticky header.
+      target.scrollIntoView({ behavior, block: "start" });
 
       // Always set the hash so headings are linkable/bookmarkable.
       if (history.replaceState) {
