@@ -1,5 +1,20 @@
 # effect-solutions
 
+## 0.3.5
+
+### Patch Changes
+
+- [`0836577`](https://github.com/kitlangton/effect-solutions/commit/083657798ad5c94f48275aded3c4cd1d94f95276) Thanks [@kitlangton](https://github.com/kitlangton)! - Refactor CLI to idiomatic Effect patterns
+
+  - Convert open-issue-service to proper Effect services with BrowserService and IssueService
+  - Convert update-notifier to service/layer pattern with UpdateNotifier and UpdateNotifierConfig
+  - Add Effect.fn trace names to all effectful functions
+  - Implement proper layer composition using Layer.provide
+  - Update all tests to use new service patterns
+  - Remove MCP package
+  - All services use Context.Tag with @cli/ prefix
+  - Error handling uses Schema.TaggedError
+
 ## 0.3.4
 
 ### Patch Changes

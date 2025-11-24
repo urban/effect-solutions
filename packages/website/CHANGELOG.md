@@ -1,5 +1,13 @@
 # @effect-best-practices/website
 
+## 0.4.3
+
+### Patch Changes
+
+- [`63e6201`](https://github.com/kitlangton/effect-solutions/commit/63e62013b6a2baa000d75563fad6a90ed68aa337) Thanks [@kitlangton](https://github.com/kitlangton)! - Add docs typecheck script: ensures TypeScript code blocks in docs are valid
+
+- [`c933808`](https://github.com/kitlangton/effect-solutions/commit/c933808fc05e7cadfc5f70da140542dc4fc30342) Thanks [@kitlangton](https://github.com/kitlangton)! - Add Twitter creator and site tags for better card attribution
+
 ## 0.4.2
 
 ### Patch Changes
