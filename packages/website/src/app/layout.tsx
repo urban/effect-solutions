@@ -46,6 +46,8 @@ export const metadata: Metadata = {
     title: siteName,
     description: siteDescription,
     images: ["/og/home.png"],
+    creator: "@kitlangton",
+    site: "@kitlangton",
   },
 };
 

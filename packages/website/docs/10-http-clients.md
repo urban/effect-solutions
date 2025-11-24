@@ -18,8 +18,7 @@ bun add @effect/platform
 ## Fetch JSON with Schema validation
 
 ```typescript
-import { HttpClient, HttpClientRequest, HttpClientResponse } from "@effect/platform"
-import * as FetchHttpClient from "@effect/platform/FetchHttpClient"
+import { HttpClient, HttpClientRequest, HttpClientResponse, FetchHttpClient } from "@effect/platform"
 import { Effect, Schema } from "effect"
 
 const User = Schema.Struct({
@@ -49,8 +48,7 @@ await fetchUser.pipe(Effect.provide(FetchHttpClient.layer), Effect.runPromise)
 ## Batching calls with Layers
 
 ```typescript
-import { HttpClient, HttpClientResponse } from "@effect/platform"
-import * as FetchHttpClient from "@effect/platform/FetchHttpClient"
+import { HttpClient, HttpClientResponse, FetchHttpClient } from "@effect/platform"
 import { Effect, Layer, Schema } from "effect"
 
 const User = Schema.Struct({
