@@ -8,7 +8,6 @@ Effect best practices and patterns for humans and AI agents — https://www.effe
 
 - `packages/website/` - Documentation site (Next.js)
 - `packages/cli/` - CLI for local docs access
-- `packages/mcp/` - MCP server for Claude integration
 - `.github/workflows/` - Automated validation & bots
 
 ## Quick Links
@@ -22,7 +21,6 @@ Effect best practices and patterns for humans and AI agents — https://www.effe
 bun install          # Install dependencies
 bun run dev          # Website dev server
 bun run dev:cli      # CLI dev mode
-bun run dev:mcp      # MCP server dev mode
 bun run check        # Biome (writes), tsc --build, tests
 bun --cwd packages/website run format  # Format website/docs
 bun --cwd packages/website run generate:og  # Rebuild Open Graph images
@@ -98,30 +96,9 @@ bunx effect-solutions search <term> # Search topics
 
 Built with Effect CLI and Effect Schema. Tests in `packages/cli/src/cli.test.ts` validate all commands.
 
-## MCP Server
-
-The MCP server (`packages/mcp/`) exposes documentation to Claude via Model Context Protocol:
-
-- `search_effect_solutions` - Search documentation by keyword
-- `open_issue` - Open GitHub issues for feedback/suggestions
-
-Configure in Claude Desktop via:
-
-```json
-{
-  "mcpServers": {
-    "effect-solutions": {
-      "command": "bunx",
-      "args": ["effect-solutions-mcp"]
-    }
-  }
-}
-```
-
 ## Testing
 
 - CLI tests: `bun test packages/cli/src/cli.test.ts`
-- MCP tests: `bun test packages/mcp/src/server.test.ts`
 - Type checking: `bunx tsc --build --force`
 - Linting: `bunx biome check .`
 
@@ -129,7 +106,7 @@ Configure in Claude Desktop via:
 
 Website deploys automatically via Vercel on push to `main`.
 
-CLI and MCP packages publish to npm via changesets workflow:
+CLI package publishes to npm via changesets workflow:
 
 ```bash
 bun scripts/changeset-named.ts "description"  # Create changeset
@@ -138,7 +115,7 @@ bun release                                    # Version + tag packages, push ta
 
 ### Release flow (tag → CI → publish)
 
-- Tags (`effect-solutions@*`, `effect-solutions-mcp@*`) are created by `changeset tag` inside `bun release`, which also pushes them.
+- Tags (`effect-solutions@*`) are created by `changeset tag` inside `bun release`, which also pushes them.
 - Pushing the tag triggers `.github/workflows/release.yml`, which:
   - installs deps with Bun
   - builds multi-arch CLI binaries via the package `prepublishOnly` (darwin arm64/x64, linux x64 baseline, linux arm64)
@@ -173,14 +150,7 @@ Effect-based CLI using:
 - `@effect/platform` for file I/O
 - Embedded JSON docs bundle
 
-### MCP Server
 
-Effect-based MCP server using:
-
-- `@modelcontextprotocol/sdk` for MCP protocol
-- Effect for service architecture
-- Same embedded docs as CLI
-- GitHub API integration for issue creation
 
 <!-- effect-solutions:start -->
 ## Effect Solutions Usage

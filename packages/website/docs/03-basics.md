@@ -6,9 +6,9 @@ order: 3
 
 # Basics
 
-Guidelines for how we structure Effect code: how to express sequencing with `Effect.gen`, and when to name effectful functions with `Effect.fn`.
+Here are some guidelines for how to structure basic Effect code. How to express sequencing with `Effect.gen`, and when to name effectful functions with `Effect.fn`.
 
-## Effect.gen for Sequential Operations
+## Effect.gen
 
 
 Just as `async/await` provides a sequential, readable way to work with `Promise` values (avoiding nested `.then()` chains), `Effect.gen` and `yield*` provide the same ergonomic benefits for `Effect` values. 
@@ -24,7 +24,7 @@ declare const processData: (data: string) => Effect.Effect<string>
 const program = Effect.gen(function* () {
   const data = yield* fetchData
   yield* Effect.logInfo(`Processing data: ${data}`)
-  return processData(data)
+  return yield* processData(data)
 })
 ```
 

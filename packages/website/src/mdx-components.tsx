@@ -8,7 +8,6 @@ import {
 } from "react";
 import { codeToHtml } from "shiki";
 import { CodeCopyButton } from "@/components/mdx/CodeCopyButton";
-import { CursorInstallButton } from "@/components/mdx/CursorInstallButton";
 import { DocTopicsList } from "@/components/mdx/DocTopicsList";
 import { DraftNote } from "@/components/mdx/DraftNote";
 import { FootnoteDefinitions } from "@/components/mdx/FootnoteDefinitions";
@@ -175,7 +174,6 @@ export function useMDXComponents(
     LLMInstructionsButton: instructions
       ? () => <LLMInstructionsButton instructions={instructions} />
       : LLMInstructionsButton,
-    CursorInstallButton,
     code: CodeBlock,
     pre: ({ children }) => (
       <div className="not-prose text-red-500">{children}</div>

@@ -1,122 +1,195 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { Console, Effect, Option } from "effect";
+import { Console, Context, Effect, Layer, Option, Schema } from "effect";
 
-const CHECK_INTERVAL_MS = 1000 * 60 * 60 * 24; // daily
-const TIMEOUT_MS = 3_000;
+const CacheFile = Schema.Struct({
+  latest: Schema.String,
+  nextCheck: Schema.Number,
+});
+type CacheFile = typeof CacheFile.Type;
 
-type CacheFile = {
-  latest: string;
-  nextCheck: number;
-};
+class UpdateCheckError extends Schema.TaggedError<UpdateCheckError>()(
+  "UpdateCheckError",
+  {
+    cause: Schema.Defect,
+  },
+) {}
 
-const isCiLike = () =>
-  Boolean(process.env.CI || process.env.NODE_ENV === "test");
+export class UpdateNotifier extends Context.Tag("@cli/UpdateNotifier")<
+  UpdateNotifier,
+  {
+    readonly check: (
+      pkgName: string,
+      currentVersion: string,
+    ) => Effect.Effect<void, UpdateCheckError>;
+  }
+>() {
+  static readonly layer = Layer.effect(
+    UpdateNotifier,
+    Effect.gen(function* () {
+      const config = yield* UpdateNotifierConfig;
 
-const homeDir = () => process.env.HOME ?? os.homedir();
+      const isNewer = (latest: string, current: string): boolean => {
+        const parseParts = (v: string) =>
+          v.split(".").map((x) => Number.parseInt(x, 10) || 0);
 
-/**
- * Compare semver versions. Returns true if `latest` > `current`.
- */
-export const isNewer = (latest: string, current: string): boolean => {
-  const parseParts = (v: string) =>
-    v.split(".").map((x) => Number.parseInt(x, 10) || 0);
+        const [latestMajor = 0, latestMinor = 0, latestPatch = 0] =
+          parseParts(latest);
+        const [currentMajor = 0, currentMinor = 0, currentPatch = 0] =
+          parseParts(current);
 
-  const [latestMajor = 0, latestMinor = 0, latestPatch = 0] =
-    parseParts(latest);
-  const [currentMajor = 0, currentMinor = 0, currentPatch = 0] =
-    parseParts(current);
+        if (latestMajor !== currentMajor) return latestMajor > currentMajor;
+        if (latestMinor !== currentMinor) return latestMinor > currentMinor;
+        return latestPatch > currentPatch;
+      };
 
-  if (latestMajor !== currentMajor) return latestMajor > currentMajor;
-  if (latestMinor !== currentMinor) return latestMinor > currentMinor;
-  return latestPatch > currentPatch;
-};
+      const cachePath = (pkgName: string) =>
+        path.join(config.homeDir, ".config", pkgName, "update.json");
 
-const cachePath = (pkgName: string) =>
-  path.join(homeDir(), ".config", pkgName, "update.json");
+      const readCache = Effect.fn("UpdateNotifier.readCache")((file: string) =>
+        Effect.tryPromise({
+          try: () => readFile(file, "utf8"),
+          catch: () => null,
+        }).pipe(
+          Effect.flatMap((raw) =>
+            raw
+              ? Effect.try({
+                  try: () => Option.some(JSON.parse(raw) as CacheFile),
+                  catch: () => Option.none<CacheFile>(),
+                })
+              : Effect.succeed(Option.none()),
+          ),
+          Effect.catchAll(() => Effect.succeed(Option.none())),
+        ),
+      );
 
-const readCache = (file: string) =>
-  Effect.tryPromise({
-    try: () => readFile(file, "utf8"),
-    catch: () => null,
-  }).pipe(
-    Effect.flatMap((raw) =>
-      raw
-        ? Effect.try({
-            try: () => Option.some(JSON.parse(raw) as CacheFile),
-            catch: () => Option.none<CacheFile>(),
-          })
-        : Effect.succeed(Option.none()),
-    ),
-    Effect.catchAll(() => Effect.succeed(Option.none())),
+      const writeCache = Effect.fn("UpdateNotifier.writeCache")(
+        (file: string, data: CacheFile) =>
+          Effect.tryPromise({
+            try: async () => {
+              await mkdir(path.dirname(file), { recursive: true });
+              await writeFile(file, JSON.stringify(data), "utf8");
+            },
+            catch: () => {},
+          }).pipe(Effect.catchAll(() => Effect.void)),
+      );
+
+      const fetchLatest = Effect.fn("UpdateNotifier.fetchLatest")(
+        (pkgName: string) =>
+          Effect.tryPromise({
+            try: async () => {
+              const controller = new AbortController();
+              const timer = setTimeout(
+                () => controller.abort(),
+                config.timeout,
+              );
+              try {
+                const res = await fetch(
+                  `https://registry.npmjs.org/${encodeURIComponent(pkgName)}/latest`,
+                  { signal: controller.signal },
+                );
+                if (!res.ok) return Option.none<string>();
+                const json = (await res.json()) as { version?: string };
+                return json.version
+                  ? Option.some(json.version)
+                  : Option.none<string>();
+              } finally {
+                clearTimeout(timer);
+              }
+            },
+            catch: () => Option.none<string>(),
+          }).pipe(Effect.catchAll(() => Effect.succeed(Option.none()))),
+      );
+
+      const logUpdate = Effect.fn("UpdateNotifier.logUpdate")(
+        (current: string, latest: string, pkgName: string) =>
+          Console.log(
+            [
+              `Update available for ${pkgName}: ${current} → ${latest}`,
+              `Run: bun add -g ${pkgName}@latest`,
+            ].join("\n"),
+          ),
+      );
+
+      const check = Effect.fn("UpdateNotifier.check")(
+        (pkgName: string, currentVersion: string) =>
+          Effect.gen(function* () {
+            if (config.isCi) return;
+
+            const now = Date.now();
+            const file = cachePath(pkgName);
+
+            const cache = yield* readCache(file);
+            if (Option.isSome(cache)) {
+              const cached = cache.value;
+              if (cached.nextCheck > now) {
+                if (isNewer(cached.latest, currentVersion)) {
+                  yield* logUpdate(currentVersion, cached.latest, pkgName);
+                }
+                return;
+              }
+            }
+
+            const latest = yield* fetchLatest(pkgName);
+            if (Option.isNone(latest)) return;
+
+            const latestVersion = latest.value;
+            yield* writeCache(file, {
+              latest: latestVersion,
+              nextCheck: now + config.checkInterval,
+            });
+
+            if (isNewer(latestVersion, currentVersion)) {
+              yield* logUpdate(currentVersion, latestVersion, pkgName);
+            }
+          }).pipe(Effect.catchAll(() => Effect.void)),
+      );
+
+      return UpdateNotifier.of({ check });
+    }),
   );
 
-const writeCache = (file: string, data: CacheFile) =>
-  Effect.tryPromise({
-    try: async () => {
-      await mkdir(path.dirname(file), { recursive: true });
-      await writeFile(file, JSON.stringify(data), "utf8");
-    },
-    catch: () => {},
-  }).pipe(Effect.catchAll(() => Effect.void));
-
-const fetchLatest = (pkgName: string) =>
-  Effect.tryPromise({
-    try: async () => {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-      try {
-        const res = await fetch(
-          `https://registry.npmjs.org/${encodeURIComponent(pkgName)}/latest`,
-          { signal: controller.signal },
-        );
-        if (!res.ok) return Option.none<string>();
-        const json = (await res.json()) as { version?: string };
-        return json.version ? Option.some(json.version) : Option.none<string>();
-      } finally {
-        clearTimeout(timer);
-      }
-    },
-    catch: () => Option.none<string>(),
-  }).pipe(Effect.catchAll(() => Effect.succeed(Option.none())));
-
-const logUpdate = (current: string, latest: string, pkgName: string) =>
-  Console.log(
-    [
-      `Update available for ${pkgName}: ${current} → ${latest}`,
-      `Run: bun add -g ${pkgName}@latest`,
-    ].join("\n"),
+  static readonly testLayer = Layer.succeed(
+    UpdateNotifier,
+    UpdateNotifier.of({
+      check: (_pkgName, _currentVersion) => Effect.void,
+    }),
   );
+}
 
-export const maybeNotifyUpdate = (pkgName: string, currentVersion: string) =>
-  Effect.gen(function* () {
-    if (isCiLike()) return;
+export class UpdateNotifierConfig extends Context.Tag(
+  "@cli/UpdateNotifierConfig",
+)<
+  UpdateNotifierConfig,
+  {
+    readonly checkInterval: number;
+    readonly timeout: number;
+    readonly isCi: boolean;
+    readonly homeDir: string;
+  }
+>() {
+  static readonly layer = Layer.sync(UpdateNotifierConfig, () => {
+    const isCi = Boolean(process.env.CI || process.env.NODE_ENV === "test");
+    const homeDir = process.env.HOME ?? os.homedir();
+    const checkInterval = 1000 * 60 * 60 * 24; // daily
+    const timeout = 3_000;
 
-    const now = Date.now();
-    const file = cachePath(pkgName);
-
-    const cache = yield* readCache(file);
-    if (Option.isSome(cache)) {
-      const cached = cache.value;
-      if (cached.nextCheck > now) {
-        if (isNewer(cached.latest, currentVersion)) {
-          yield* logUpdate(currentVersion, cached.latest, pkgName);
-        }
-        return;
-      }
-    }
-
-    const latest = yield* fetchLatest(pkgName);
-    if (Option.isNone(latest)) return;
-
-    const latestVersion = latest.value;
-    yield* writeCache(file, {
-      latest: latestVersion,
-      nextCheck: now + CHECK_INTERVAL_MS,
+    return UpdateNotifierConfig.of({
+      checkInterval,
+      timeout,
+      isCi,
+      homeDir,
     });
+  });
 
-    if (isNewer(latestVersion, currentVersion)) {
-      yield* logUpdate(currentVersion, latestVersion, pkgName);
-    }
-  }).pipe(Effect.catchAll(() => Effect.void));
+  static readonly testLayer = Layer.succeed(
+    UpdateNotifierConfig,
+    UpdateNotifierConfig.of({
+      checkInterval: 100,
+      timeout: 100,
+      isCi: true,
+      homeDir: "/tmp",
+    }),
+  );
+}

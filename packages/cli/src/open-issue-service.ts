@@ -1,124 +1,133 @@
 import { spawn } from "bun";
+import { Context, Effect, Layer, Schema } from "effect";
 
-export type OpenIssueCategory = "Topic Request" | "Fix" | "Improvement";
+export const OpenIssueCategory = Schema.Literal(
+  "Topic Request",
+  "Fix",
+  "Improvement",
+);
+export type OpenIssueCategory = typeof OpenIssueCategory.Type;
 
-export type BrowserOpenStrategy = "system" | "stub" | "collect" | "noop";
+class BrowserOpenError extends Schema.TaggedError<BrowserOpenError>()(
+  "BrowserOpenError",
+  {
+    url: Schema.String,
+    cause: Schema.Defect,
+  },
+) {}
+
+export class BrowserService extends Context.Tag("@cli/BrowserService")<
+  BrowserService,
+  {
+    readonly open: (url: string) => Effect.Effect<void, BrowserOpenError>;
+  }
+>() {
+  static readonly layer = Layer.sync(BrowserService, () => {
+    const open = Effect.fn("BrowserService.open")((url: string) =>
+      Effect.try({
+        try: () => {
+          const platform = process.platform;
+          let command: string[];
+
+          if (platform === "darwin") {
+            command = ["open", url];
+          } else if (platform === "win32") {
+            command = ["cmd", "/c", "start", "", url];
+          } else {
+            command = ["xdg-open", url];
+          }
+
+          const child = spawn(command, {
+            stdout: "ignore",
+            stderr: "ignore",
+          });
+          void child.exited;
+        },
+        catch: (error) =>
+          BrowserOpenError.make({
+            url,
+            cause: error,
+          }),
+      }),
+    );
+
+    return BrowserService.of({ open });
+  });
+
+  static readonly testLayer = Layer.sync(BrowserService, () => {
+    const urls: string[] = [];
+
+    const open = Effect.fn("BrowserService.open.test")((url: string) =>
+      Effect.sync(() => {
+        urls.push(url);
+      }),
+    );
+
+    return BrowserService.of({ open });
+  });
+
+  static readonly noopLayer = Layer.sync(BrowserService, () => {
+    const open = Effect.fn("BrowserService.open.noop")(
+      (_url: string) => Effect.void,
+    );
+
+    return BrowserService.of({ open });
+  });
+}
 
 export type OpenIssueInput = {
   category?: OpenIssueCategory;
   title?: string;
   description?: string;
-  strategy?: BrowserOpenStrategy;
 };
 
 export type OpenIssueResult = {
   issueUrl: string;
-  message: string;
-  opened: boolean;
-  openedWith: string;
 };
 
-// In-memory log used for tests when strategy === "collect"
-const collectLog: string[] = [];
-
-export const resetCollectLog = () => {
-  collectLog.length = 0;
-};
-
-export const getCollectLog = () => [...collectLog];
-
-const openInBrowser = (
-  url: string,
-  strategy: BrowserOpenStrategy,
-): { opened: boolean; openedWith: string } => {
-  if (strategy === "stub") {
-    return { opened: true, openedWith: "stub" };
+export class IssueService extends Context.Tag("@cli/IssueService")<
+  IssueService,
+  {
+    readonly open: (
+      input: OpenIssueInput,
+    ) => Effect.Effect<OpenIssueResult, BrowserOpenError>;
   }
+>() {
+  static readonly layer = Layer.effect(
+    IssueService,
+    Effect.gen(function* () {
+      const browser = yield* BrowserService;
 
-  if (strategy === "collect") {
-    collectLog.push(url);
-    return { opened: true, openedWith: "collect" };
-  }
+      const open = Effect.fn("IssueService.open")((input: OpenIssueInput) =>
+        Effect.gen(function* () {
+          const repoUrl = "https://github.com/kitlangton/effect-solutions";
 
-  if (strategy === "noop") {
-    return { opened: false, openedWith: "noop" };
-  }
+          if (!input.category && !input.title && !input.description) {
+            const issueUrl = `${repoUrl}/issues/new`;
+            yield* browser.open(issueUrl);
+            return { issueUrl };
+          }
 
-  const platform = process.platform;
-  let command: string[] | null = null;
+          const fullTitle =
+            input.category && input.title
+              ? `[${input.category}] ${input.title}`
+              : input.title || "";
+          const body = input.description
+            ? `## Description\n\n${input.description}\n\n---\n*Created via [Effect Solutions CLI](${repoUrl})*`
+            : `---\n*Created via [Effect Solutions CLI](${repoUrl})*`;
 
-  if (platform === "darwin") {
-    command = ["open", url];
-  } else if (platform === "win32") {
-    command = ["cmd", "/c", "start", "", url];
-  } else {
-    command = ["xdg-open", url];
-  }
+          const params = new URLSearchParams();
+          if (fullTitle) params.set("title", fullTitle);
+          if (body) params.set("body", body);
 
-  try {
-    const child = spawn(command, {
-      stdout: "ignore",
-      stderr: "ignore",
-    });
-    void child.exited;
-    return { opened: true, openedWith: "system" };
-  } catch {
-    return { opened: false, openedWith: "system" };
-  }
-};
+          const issueUrl = `${repoUrl}/issues/new?${params.toString()}`;
+          yield* browser.open(issueUrl);
 
-export const openIssue = ({
-  category,
-  title,
-  description,
-  strategy,
-}: OpenIssueInput): OpenIssueResult => {
-  const repoUrl = "https://github.com/kitlangton/effect-solutions";
+          return { issueUrl };
+        }),
+      );
 
-  // If no args provided, just open to the new issue page
-  if (!category && !title && !description) {
-    const issueUrl = `${repoUrl}/issues/new`;
-    const resolvedStrategy =
-      strategy ||
-      (process.env.EFFECT_SOLUTIONS_OPEN_STRATEGY as BrowserOpenStrategy) ||
-      "system";
-
-    const openResult = openInBrowser(issueUrl, resolvedStrategy);
-
-    return {
-      issueUrl,
-      opened: openResult.opened,
-      openedWith: openResult.openedWith,
-      message: openResult.opened
-        ? `Opened GitHub new issue page in browser (${openResult.openedWith}): ${issueUrl}`
-        : `Generated GitHub new issue page URL (browser not opened: ${openResult.openedWith}): ${issueUrl}`,
-    };
-  }
-
-  const fullTitle = category && title ? `[${category}] ${title}` : title || "";
-  const body = description
-    ? `## Description\n\n${description}\n\n---\n*Created via [Effect Solutions CLI](${repoUrl})*`
-    : `---\n*Created via [Effect Solutions CLI](${repoUrl})*`;
-
-  const params = new URLSearchParams();
-  if (fullTitle) params.set("title", fullTitle);
-  if (body) params.set("body", body);
-
-  const issueUrl = `${repoUrl}/issues/new?${params.toString()}`;
-
-  const resolvedStrategy =
-    strategy ||
-    (process.env.EFFECT_SOLUTIONS_OPEN_STRATEGY as BrowserOpenStrategy) ||
-    "system";
-
-  const openResult = openInBrowser(issueUrl, resolvedStrategy);
-
-  return {
-    issueUrl,
-    opened: openResult.opened,
-    openedWith: openResult.openedWith,
-    message: openResult.opened
-      ? `Opened GitHub issue in browser (${openResult.openedWith}): ${issueUrl}`
-      : `Generated GitHub issue URL (browser not opened: ${openResult.openedWith}): ${issueUrl}`,
-  };
-};
+      return IssueService.of({ open });
+    }),
+  );
+}

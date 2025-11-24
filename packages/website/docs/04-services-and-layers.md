@@ -8,6 +8,107 @@ order: 4
 
 Effect's service pattern provides a deterministic way to organize your application through dependency injection. By defining services as Context.Tag classes and composing them into Layers, you create explicit dependency graphs that are type-safe, testable, and modular.
 
+## What is a Service?
+
+A service in Effect is defined using `Context.Tag` as a class that declares:
+
+1. **A unique identifier** (e.g., `@app/Database`)
+2. **An interface** that describes the service's methods
+
+Services provide contracts without implementation. The actual behavior comes later through Layers.
+
+```typescript
+import { Context, Effect } from "effect"
+
+class Database extends Context.Tag("@app/Database")<
+  Database,
+  {
+    readonly query: (sql: string) => Effect.Effect<unknown[]>
+    readonly execute: (sql: string) => Effect.Effect<void>
+  }
+>() {}
+
+class Logger extends Context.Tag("@app/Logger")<
+  Logger,
+  {
+    readonly log: (message: string) => Effect.Effect<void>
+  }
+>() {}
+```
+
+**General recommendations:**
+
+- **Tag identifiers must be unique**. Use `@app/ServiceName` prefix pattern
+- **Service methods should have no dependencies (`R = never`)**. Dependencies are handled via Layer composition, not through method signatures
+- **Keep interfaces focused**. Each service should have a clear, single responsibility
+- **Define services as classes**. This provides a namespace for layer implementations
+- **Use readonly properties**. Services should not expose mutable state directly
+
+## What is a Layer?
+
+A Layer is an implementation of a service. Layers handle:
+
+1. **Setup/initialization** (connecting to databases, reading config, etc.)
+2. **Dependency resolution** (acquiring other services they need)
+3. **Resource lifecycle** (cleanup happens automatically)
+
+```typescript
+import { HttpClient, HttpClientResponse } from "@effect/platform"
+import { Schema } from "effect"
+
+class User extends Schema.Class<User>("User")({
+  id: Schema.String,
+  name: Schema.String,
+  email: Schema.String,
+}) {}
+
+class Analytics extends Context.Tag("@app/Analytics")<
+  Analytics,
+  {
+    readonly track: (event: string, data: unknown) => Effect.Effect<void>
+  }
+>() {}
+
+class Users extends Context.Tag("@app/Users")<
+  Users,
+  {
+    readonly findById: (id: string) => Effect.Effect<User>
+  }
+>() {
+  static readonly layer = Layer.effect(
+    Users,
+    Effect.gen(function* () {
+      // 1. yield* services you depend on
+      const http = yield* HttpClient.HttpClient
+      const analytics = yield* Analytics
+
+      // 2. define the service methods
+      const findById = Effect.fn("Users.findById")(function* (id: string) {
+        yield* analytics.track("user.find", { id })
+        const response = yield* http.get(`https://api.example.com/users/${id}`)
+        return yield* HttpClientResponse.schemaBodyJson(User)(response)
+      })
+
+      // 3. return the service
+      return Users.of({ findById })
+    })
+  )
+}
+```
+
+**Layer naming conventions:**
+
+- Use camelCase with `Layer` suffix (`layer`, `testLayer`, `mockLayer`)
+- `layer` is the production implementation
+- Use descriptive names for variants: `testLayer`, `mockLayer`, `localLayer`
+- Avoid `liveLayer` prefix. Just use `layer` for primary implementation
+
+**When to use each Layer constructor:**
+
+- `Layer.sync()`: Synchronous setup, returns service immediately
+- `Layer.effect()`: Async setup or needs to yield from other services
+- `Layer.succeed()`: Static service with no setup logic
+
 These are best practices to follow when building services and layers.
 
 ## Designing with Services First

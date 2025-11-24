@@ -70,32 +70,6 @@ Add to `package.json` to persist across installs:
 }
 ```
 
-## Effect Solutions CLI
-
-Access Effect Solutions documentation directly from the command line:
-
-```bash
-# List all topics
-bunx effect-solutions@latest list
-
-# Show specific topics
-bunx effect-solutions@latest show project-setup tsconfig
-
-# Show all topics at once
-bunx effect-solutions@latest show --all
-```
-
-For AI assistants, add to `CLAUDE.md` or `AGENTS.md`:
-
-```markdown
-# Effect TypeScript
-
-Use Effect Solutions CLI before working with Effect code:
-- List topics: `bunx effect-solutions@latest list`
-- Show docs: `bunx effect-solutions@latest show <topic>`
-- Apply patterns from docs, don't guess
-```
-
 ## Reference Repositories
 
 We recommend cloning the Effect repository (and other complex dependencies you work with often) locally. Your AI agent can then grep through real source code, patterns, and documentation to resolve complex problems.
@@ -117,4 +91,4 @@ Your agent can now search the actual Effect source code for implementation patte
 
 Effect projects benefit from strict TypeScript configuration for safety and performance.
 
-**See:** [TypeScript Configuration Guide](./02-tsconfig.md)
+**See:** [TypeScript Configuration](./02-tsconfig.md)

@@ -1,11 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import { Effect } from "effect";
 import { renderDocList, renderDocs } from "./cli";
 import { DOCS } from "./docs-manifest";
-import {
-  getCollectLog,
-  openIssue,
-  resetCollectLog,
-} from "./open-issue-service";
+import { BrowserService, IssueService } from "./open-issue-service";
 
 describe("effect-solutions CLI docs", () => {
   test("list output includes all docs", () => {
@@ -38,23 +35,25 @@ describe("effect-solutions CLI docs", () => {
     expect(() => renderDocs(["unknown-doc"])).toThrowError(/Unknown doc slug/);
   });
 
-  test("open issue uses collect strategy and logs url", () => {
-    resetCollectLog();
-    const result = openIssue({
-      category: "Fix",
-      title: "Broken link",
-      description: "Example body",
-      strategy: "collect",
+  test("open issue with test layer", async () => {
+    const program = Effect.gen(function* () {
+      const issueService = yield* IssueService;
+      const result = yield* issueService.open({
+        category: "Fix",
+        title: "Broken link",
+        description: "Example body",
+      });
+
+      expect(result.issueUrl).toContain(
+        "https://github.com/kitlangton/effect-solutions/issues/new",
+      );
     });
 
-    expect(result.issueUrl).toContain(
-      "https://github.com/kitlangton/effect-solutions/issues/new",
+    await Effect.runPromise(
+      program.pipe(
+        Effect.provide(IssueService.layer),
+        Effect.provide(BrowserService.testLayer),
+      ),
     );
-    expect(result.openedWith).toBe("collect");
-    expect(result.opened).toBe(true);
-
-    const log = getCollectLog();
-    expect(log.length).toBe(1);
-    expect(log[0]).toBe(result.issueUrl);
   });
 });

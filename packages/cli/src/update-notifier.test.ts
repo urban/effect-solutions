@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { Effect } from "effect";
-import { isNewer, maybeNotifyUpdate } from "./update-notifier";
+import { Effect, Layer } from "effect";
+import { UpdateNotifier, UpdateNotifierConfig } from "./update-notifier";
 
 const pkgName = "effect-solutions";
 
@@ -54,7 +54,27 @@ describe("maybeNotifyUpdate (effect)", () => {
       "utf8",
     );
 
-    await Effect.runPromise(maybeNotifyUpdate(pkgName, "1.0.0"));
+    const testConfigLayer = Layer.succeed(
+      UpdateNotifierConfig,
+      UpdateNotifierConfig.of({
+        checkInterval: 1000 * 60 * 60 * 24,
+        timeout: 3000,
+        isCi: false,
+        homeDir: tmpHome,
+      }),
+    );
+
+    const program = Effect.gen(function* () {
+      const notifier = yield* UpdateNotifier;
+      yield* notifier.check(pkgName, "1.0.0");
+    });
+
+    await Effect.runPromise(
+      program.pipe(
+        Effect.provide(UpdateNotifier.layer),
+        Effect.provide(testConfigLayer),
+      ),
+    );
 
     expect(logs.join("\n")).toContain("1.0.0 → 9.9.9");
     expect(logs.join("\n")).toContain("bun add -g effect-solutions@latest");
@@ -69,7 +89,27 @@ describe("maybeNotifyUpdate (effect)", () => {
       "utf8",
     );
 
-    await Effect.runPromise(maybeNotifyUpdate(pkgName, "1.0.0"));
+    const testConfigLayer = Layer.succeed(
+      UpdateNotifierConfig,
+      UpdateNotifierConfig.of({
+        checkInterval: 1000 * 60 * 60 * 24,
+        timeout: 3000,
+        isCi: false,
+        homeDir: tmpHome,
+      }),
+    );
+
+    const program = Effect.gen(function* () {
+      const notifier = yield* UpdateNotifier;
+      yield* notifier.check(pkgName, "1.0.0");
+    });
+
+    await Effect.runPromise(
+      program.pipe(
+        Effect.provide(UpdateNotifier.layer),
+        Effect.provide(testConfigLayer),
+      ),
+    );
 
     expect(logs).toHaveLength(0);
   });
@@ -84,7 +124,27 @@ describe("maybeNotifyUpdate (effect)", () => {
       "utf8",
     );
 
-    await Effect.runPromise(maybeNotifyUpdate(pkgName, "1.0.0"));
+    const testConfigLayer = Layer.succeed(
+      UpdateNotifierConfig,
+      UpdateNotifierConfig.of({
+        checkInterval: 1000 * 60 * 60 * 24,
+        timeout: 3000,
+        isCi: true,
+        homeDir: tmpHome,
+      }),
+    );
+
+    const program = Effect.gen(function* () {
+      const notifier = yield* UpdateNotifier;
+      yield* notifier.check(pkgName, "1.0.0");
+    });
+
+    await Effect.runPromise(
+      program.pipe(
+        Effect.provide(UpdateNotifier.layer),
+        Effect.provide(testConfigLayer),
+      ),
+    );
 
     expect(logs).toHaveLength(0);
   });
@@ -98,7 +158,27 @@ describe("maybeNotifyUpdate (effect)", () => {
       "utf8",
     );
 
-    await Effect.runPromise(maybeNotifyUpdate(pkgName, "0.3.1"));
+    const testConfigLayer = Layer.succeed(
+      UpdateNotifierConfig,
+      UpdateNotifierConfig.of({
+        checkInterval: 1000 * 60 * 60 * 24,
+        timeout: 3000,
+        isCi: false,
+        homeDir: tmpHome,
+      }),
+    );
+
+    const program = Effect.gen(function* () {
+      const notifier = yield* UpdateNotifier;
+      yield* notifier.check(pkgName, "0.3.1");
+    });
+
+    await Effect.runPromise(
+      program.pipe(
+        Effect.provide(UpdateNotifier.layer),
+        Effect.provide(testConfigLayer),
+      ),
+    );
 
     expect(logs).toHaveLength(0);
   });
@@ -106,7 +186,21 @@ describe("maybeNotifyUpdate (effect)", () => {
   // Note: we intentionally avoid mocking fetch because the Effect runtime expects a real Fetch implementation.
 });
 
-describe("isNewer", () => {
+describe("version comparison", () => {
+  const isNewer = (latest: string, current: string): boolean => {
+    const parseParts = (v: string) =>
+      v.split(".").map((x) => Number.parseInt(x, 10) || 0);
+
+    const [latestMajor = 0, latestMinor = 0, latestPatch = 0] =
+      parseParts(latest);
+    const [currentMajor = 0, currentMinor = 0, currentPatch = 0] =
+      parseParts(current);
+
+    if (latestMajor !== currentMajor) return latestMajor > currentMajor;
+    if (latestMinor !== currentMinor) return latestMinor > currentMinor;
+    return latestPatch > currentPatch;
+  };
+
   test("returns true when major version is newer", () => {
     expect(isNewer("2.0.0", "1.0.0")).toBe(true);
     expect(isNewer("1.0.0", "2.0.0")).toBe(false);

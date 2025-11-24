@@ -19,16 +19,11 @@ bunx effect-solutions show http-clients # Show specific topic
 bunx effect-solutions search error      # Search topics
 ```
 
-**Claude MCP**: Install server for Claude Desktop
-```bash
-bunx effect-solutions-mcp install
-```
-
 ## Features
 
 - **Practical patterns** - Real-world solutions, not just theory
 - **Type-safe examples** - All code validated with Effect LSP
-- **AI-friendly** - Structured for LLM consumption via CLI/MCP
+- **AI-friendly** - Structured for LLM consumption via CLI
 - **Community-driven** - Open issues to suggest/debate patterns
 
 ## Quick Examples
@@ -79,7 +74,6 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for details and [CLAUDE.md](./CLAUDE.md
 ## Packages
 
 - `effect-solutions` - CLI for local docs
-- `effect-solutions-mcp` - MCP server for Claude
 - Website at [effect.solutions](https://www.effect.solutions)
 
 ## License

@@ -2,12 +2,16 @@
 
 import { Args, Command, Options } from "@effect/cli";
 import { BunContext, BunRuntime } from "@effect/platform-bun";
-import { Console, Effect, Option, pipe } from "effect";
+import { Console, Effect, Layer, Option, pipe } from "effect";
 import pc from "picocolors";
 import pkg from "../package.json" with { type: "json" };
 import { DOC_LOOKUP, DOCS } from "./docs-manifest";
-import { type OpenIssueCategory, openIssue } from "./open-issue-service";
-import { maybeNotifyUpdate } from "./update-notifier";
+import {
+  BrowserService,
+  IssueService,
+  type OpenIssueCategory,
+} from "./open-issue-service";
+import { UpdateNotifier, UpdateNotifierConfig } from "./update-notifier";
 
 const CLI_NAME = "effect-solutions";
 const CLI_VERSION = pkg.version;
@@ -162,7 +166,9 @@ const openIssueCommand = Command.make("open-issue", {
     "Open a pre-filled GitHub issue in the effect-solutions repo",
   ),
   Command.withHandler(({ category, title, description }) =>
-    Effect.sync(() => {
+    Effect.gen(function* () {
+      const issueService = yield* IssueService;
+
       const input = {
         ...(Option.isSome(category) && {
           category: category.value as OpenIssueCategory,
@@ -171,19 +177,23 @@ const openIssueCommand = Command.make("open-issue", {
         ...(Option.isSome(description) && { description: description.value }),
       };
 
-      return openIssue(input);
-    }).pipe(
-      Effect.flatMap((result) =>
-        Console.log(
-          [
-            pc.bold("Effect Solutions issue"),
-            `URL: ${pc.cyan(result.issueUrl)}`,
-            `Opened: ${result.opened ? pc.green("yes") : pc.yellow("no")} (${result.openedWith})`,
-            result.message,
-          ].join("\n"),
+      const result = yield* issueService.open(input).pipe(
+        Effect.catchAll((error) =>
+          Effect.gen(function* () {
+            yield* Console.error(
+              pc.red(`Failed to open issue: ${error.message}`),
+            );
+            return { issueUrl: error.url };
+          }),
         ),
-      ),
-    ),
+      );
+
+      yield* Console.log(
+        [pc.bold("Effect Solutions issue"), `URL: ${pc.cyan(result.issueUrl)}`]
+          .filter(Boolean)
+          .join("\n"),
+      );
+    }),
   ),
 );
 
@@ -201,11 +211,20 @@ export const runCli = (argv: ReadonlyArray<string>) =>
     version: CLI_VERSION,
   })(argv);
 
+const MainLayer = UpdateNotifier.layer.pipe(
+  Layer.provide(UpdateNotifierConfig.layer),
+  Layer.merge(IssueService.layer.pipe(Layer.provide(BrowserService.layer))),
+  Layer.provideMerge(BunContext.layer),
+);
+
 if (import.meta.main) {
   pipe(
-    maybeNotifyUpdate(CLI_NAME, CLI_VERSION),
-    Effect.zipRight(runCli(process.argv)),
-    Effect.provide(BunContext.layer),
+    Effect.gen(function* () {
+      const notifier = yield* UpdateNotifier;
+      yield* notifier.check(CLI_NAME, CLI_VERSION);
+      yield* runCli(process.argv);
+    }),
+    Effect.provide(MainLayer),
     Effect.tapErrorCause((cause) => Console.error(pc.red(`Error: ${cause}`))),
     Effect.catchAll(() => Effect.sync(() => process.exit(1))),
     BunRuntime.runMain,

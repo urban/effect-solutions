@@ -10,11 +10,9 @@
   "scripts": {
     "dev": "bun --cwd packages/website dev",
     "dev:cli": "bun --cwd packages/cli dev",
-    "dev:mcp": "bun --cwd packages/mcp run dev",
     "build": "bun --filter '*' build",
     "build:website": "bun --cwd packages/website build",
     "build:cli": "cd packages/cli && bun run build:artifacts",
-    "build:mcp": "bun --cwd packages/mcp build",
     "generate:og": "cd packages/website && bun run generate:og",
     "generate:manifest": "bun --cwd packages/cli scripts/generate-manifest.ts",
     "changeset": "bun scripts/changeset-named.ts",
