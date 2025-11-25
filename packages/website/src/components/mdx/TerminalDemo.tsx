@@ -170,29 +170,32 @@ const makeConsoleMock = Effect.gen(function* () {
   const log: MockConsole["log"] = (...args) =>
     Ref.update(lines, (l) => [...l, ...args.map(String)]);
 
-  return MockConsoleTag.of({
-    [Console.TypeId]: Console.TypeId,
+  return {
+    console: MockConsoleTag.of({
+      [Console.TypeId]: Console.TypeId,
+      getLines,
+      log,
+      unsafe: globalThis.console,
+      assert: () => Effect.void,
+      clear: Effect.void,
+      count: () => Effect.void,
+      countReset: () => Effect.void,
+      debug: () => Effect.void,
+      dir: () => Effect.void,
+      dirxml: () => Effect.void,
+      error: log, // Also capture errors
+      group: () => Effect.void,
+      groupEnd: Effect.void,
+      info: () => Effect.void,
+      table: () => Effect.void,
+      time: () => Effect.void,
+      timeEnd: () => Effect.void,
+      timeLog: () => Effect.void,
+      trace: () => Effect.void,
+      warn: () => Effect.void,
+    }),
     getLines,
-    log,
-    unsafe: globalThis.console,
-    assert: () => Effect.void,
-    clear: Effect.void,
-    count: () => Effect.void,
-    countReset: () => Effect.void,
-    debug: () => Effect.void,
-    dir: () => Effect.void,
-    dirxml: () => Effect.void,
-    error: log, // Also capture errors
-    group: () => Effect.void,
-    groupEnd: Effect.void,
-    info: () => Effect.void,
-    table: () => Effect.void,
-    time: () => Effect.void,
-    timeEnd: () => Effect.void,
-    timeLog: () => Effect.void,
-    trace: () => Effect.void,
-    warn: () => Effect.void,
-  });
+  };
 });
 
 // =============================================================================
@@ -369,8 +372,10 @@ async function runCliCommand(args: string): Promise<CliResult> {
   const argv = ["node", "tasks", ...parseArgs(args)];
 
   const program = Effect.gen(function* () {
-    const mockConsole = yield* makeConsoleMock;
-    const consoleLayer = Layer.succeed(MockConsoleTag, mockConsole);
+    const { console: mockConsole, getLines } = yield* makeConsoleMock;
+
+    // Use Console.setConsole to properly override the default console
+    const consoleLayer = Console.setConsole(mockConsole);
 
     const exit = yield* cli(argv).pipe(
       Effect.provide(consoleLayer),
@@ -379,7 +384,7 @@ async function runCliCommand(args: string): Promise<CliResult> {
       Effect.exit,
     );
 
-    const lines = yield* mockConsole.getLines();
+    const lines = yield* getLines();
     const output = lines.join("\n");
 
     if (Exit.isFailure(exit)) {
