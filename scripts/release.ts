@@ -3,7 +3,7 @@
 import { Command } from "@effect/cli";
 import { FileSystem } from "@effect/platform";
 import { BunContext, BunRuntime } from "@effect/platform-bun";
-import { Array, Effect, Option, pipe, String } from "effect";
+import { Array, Effect, pipe, String } from "effect";
 
 const exec = (cmd: string) => Effect.promise(() => Bun.$`sh -c ${cmd}`.text());
 
@@ -103,17 +103,26 @@ const release = Command.make("release").pipe(
       // Tag
       yield* Effect.log("🏷️  Creating tags...");
       const tagOutput = yield* exec("bunx changeset tag");
-      const tagMatch = tagOutput.match(/New tag:\s+(\S+)/);
-      const tag = pipe(
-        Option.fromNullable(tagMatch?.[1]),
-        Option.getOrElse(() => "unknown"),
-      );
+      const tagMatches = tagOutput.matchAll(/New tag:\s+(\S+)/g);
+      const tags = Array.fromIterable(tagMatches).map((m) => m[1]);
 
-      // Push with tags
-      yield* Effect.log("🚀 Pushing with tags...");
-      yield* exec("git push --follow-tags");
+      if (tags.length === 0) {
+        yield* Effect.log("⚠️  No tags created");
+        return;
+      }
 
-      yield* Effect.log(`✅ Released ${tag}`);
+      // Push commits first
+      yield* Effect.log("⬆️  Pushing commits...");
+      yield* exec("git push");
+
+      // Push each tag individually to reliably trigger GitHub Actions
+      // (git push --follow-tags doesn't always trigger workflows)
+      yield* Effect.log(`🏷️  Pushing ${tags.length} tag(s)...`);
+      for (const tag of tags) {
+        yield* exec(`git push origin ${tag}`);
+      }
+
+      yield* Effect.log(`✅ Released: ${tags.join(", ")}`);
     }),
   ),
 );
