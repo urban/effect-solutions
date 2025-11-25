@@ -1,5 +1,11 @@
 # @effect-best-practices/website
 
+## 0.4.10
+
+### Patch Changes
+
+- [`f7f5e91`](https://github.com/kitlangton/effect-solutions/commit/f7f5e91d7f280f3b774fb0af669c4baaa099d3aa) Thanks [@kitlangton](https://github.com/kitlangton)! - Fix header icon animation on navigation
+
 ## 0.4.9
 
 ### Patch Changes
