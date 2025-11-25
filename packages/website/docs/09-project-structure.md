@@ -1,7 +1,7 @@
 ---
 title: Project Structure
 description: "Recommended folder structure and organization patterns"
-order: 8
+order: 9
 draft: true
 ---
 

@@ -1,11 +1,10 @@
 ---
-title: Testing with Vitest
+title: Testing
 description: "How to test Effect code with @effect/vitest"
-order: 11
-draft: true
+order: 8
 ---
 
-# Testing with Vitest
+# Testing
 
 `@effect/vitest` provides enhanced testing support for Effect code. It handles Effect execution, scoped resources, layers, and provides detailed fiber failure reporting.
 

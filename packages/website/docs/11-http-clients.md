@@ -1,7 +1,7 @@
 ---
 title: HTTP Clients
 description: "FetchHttpClient + Schema for typed REST calls"
-order: 10
+order: 11
 draft: true
 ---
 

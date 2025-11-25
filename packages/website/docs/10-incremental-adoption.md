@@ -1,7 +1,7 @@
 ---
 title: Incremental Adoption
 description: "Strategies for gradually introducing Effect into existing codebases"
-order: 9
+order: 10
 draft: true
 ---
 
