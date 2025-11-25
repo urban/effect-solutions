@@ -1,43 +1,75 @@
 #!/usr/bin/env bun
-import { writeFile } from "node:fs/promises";
-import { join } from "node:path";
+
+import { Args, Command, Options } from "@effect/cli";
+import { FileSystem } from "@effect/platform";
+import { BunContext, BunRuntime } from "@effect/platform-bun";
+import { Effect, pipe } from "effect";
 
 const PACKAGES = {
   website: "@effect-best-practices/website",
   cli: "effect-solutions",
 } as const;
 
-const description = process.argv[2];
-const packageArg = (process.argv[3] || "website") as keyof typeof PACKAGES;
-const bump = process.argv[4] || "patch";
+type PackageKey = keyof typeof PACKAGES;
+type BumpType = "patch" | "minor" | "major";
 
-if (!description) {
-  console.error("Usage: bun scripts/changeset-named.ts <description> [website|cli] [patch|minor|major]");
-  console.error("Defaults: website, patch");
-  process.exit(1);
-}
+const isPackageKey = (value: string): value is PackageKey =>
+  value in PACKAGES;
 
-if (!(packageArg in PACKAGES)) {
-  console.error(`Invalid package: ${packageArg}. Use: website or cli`);
-  process.exit(1);
-}
+const isBumpType = (value: string): value is BumpType =>
+  ["patch", "minor", "major"].includes(value);
 
-if (!["patch", "minor", "major"].includes(bump)) {
-  console.error(`Invalid bump: ${bump}. Use: patch, minor, or major`);
-  process.exit(1);
-}
+const changeset = Command.make("changeset", {
+  description: Args.text({ name: "description" }).pipe(
+    Args.withDescription("Changeset description"),
+  ),
+  package: Options.text("package").pipe(
+    Options.withAlias("p"),
+    Options.withDescription("Package: website or cli"),
+    Options.withDefault("website"),
+  ),
+  bump: Options.text("bump").pipe(
+    Options.withAlias("b"),
+    Options.withDescription("Bump type: patch, minor, or major"),
+    Options.withDefault("patch"),
+  ),
+}).pipe(
+  Command.withDescription("Create a named changeset file"),
+  Command.withHandler(({ description, package: pkg, bump }) =>
+    Effect.gen(function* () {
+      if (!isPackageKey(pkg)) {
+        return yield* Effect.fail(new Error(`Invalid package: ${pkg}. Use: website or cli`));
+      }
+      if (!isBumpType(bump)) {
+        return yield* Effect.fail(new Error(`Invalid bump: ${bump}. Use: patch, minor, or major`));
+      }
 
-const packageName = PACKAGES[packageArg];
-const kebabName = description.replace(/\s+/g, "-").toLowerCase();
-const fileName = `${kebabName}.md`;
-const filePath = join(".changeset", fileName);
+      const fs = yield* FileSystem.FileSystem;
+      const packageName = PACKAGES[pkg];
+      const kebabName = description.replace(/\s+/g, "-").toLowerCase();
+      const fileName = `${kebabName}.md`;
+      const filePath = `.changeset/${fileName}`;
 
-const content = `---
+      const content = `---
 "${packageName}": ${bump}
 ---
 
 ${description}
 `;
 
-await writeFile(filePath, content);
-console.log(`✅ Created changeset: ${fileName}`);
+      yield* fs.writeFileString(filePath, content);
+      yield* Effect.log(`✅ Created changeset: ${fileName}`);
+    }),
+  ),
+);
+
+const run = Command.run(changeset, {
+  name: "changeset-named",
+  version: "0.0.0",
+});
+
+pipe(
+  run(process.argv),
+  Effect.provide(BunContext.layer),
+  BunRuntime.runMain,
+);
