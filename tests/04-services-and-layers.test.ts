@@ -817,7 +817,7 @@ describe("04-services-and-layers", () => {
         readonly increment: () => Effect.Effect<void>;
       }
     >() {
-      static readonly Live = Layer.sync(Counter, () => {
+      static readonly layer = Layer.sync(Counter, () => {
         let count = 0;
         return {
           get: () => Effect.succeed(count),
@@ -826,7 +826,7 @@ describe("04-services-and-layers", () => {
       });
     }
 
-    it.layer(Counter.Live)("counter", (it) => {
+    it.layer(Counter.layer)("counter", (it) => {
       it.effect("starts at zero", () =>
         Effect.gen(function* () {
           const counter = yield* Counter;
