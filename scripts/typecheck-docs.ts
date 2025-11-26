@@ -2,9 +2,15 @@
 import { spawnSync } from "node:child_process";
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const DOCS_DIR = join(import.meta.dir, "../packages/website/docs");
-const TEMP_DIR = join(import.meta.dir, "../.docs-typecheck");
+const BASE_DIR =
+  // bun exposes import.meta.dir; node doesn't
+  // @ts-expect-error bun
+  import.meta.dir ?? fileURLToPath(new URL(".", import.meta.url));
+
+const DOCS_DIR = join(BASE_DIR, "../packages/website/docs");
+const TEMP_DIR = join(BASE_DIR, "../.docs-typecheck");
 
 type ExtractedBlock = {
   file: string;
@@ -21,6 +27,9 @@ async function extractCodeBlocks(): Promise<ExtractedBlock[]> {
 
   for (const file of mdFiles) {
     const content = await readFile(join(DOCS_DIR, file), "utf-8");
+    // Skip draft docs via frontmatter `draft: true`
+    const fm = content.match(/^---\n([\s\S]*?)\n---/);
+    if (fm && /draft:\s*true/.test(fm[1])) continue;
     const lines = content.split("\n");
 
     let inCodeBlock = false;
@@ -37,6 +46,13 @@ async function extractCodeBlocks(): Promise<ExtractedBlock[]> {
         currentBlock = [];
       } else if (line.startsWith("```") && inCodeBlock) {
         if (isTypeScriptBlock && currentBlock.length > 0) {
+          const firstNonEmpty = currentBlock.find((l) => l.trim() !== "");
+          if (firstNonEmpty?.trim().startsWith("// typecheck:skip")) {
+            inCodeBlock = false;
+            isTypeScriptBlock = false;
+            currentBlock = [];
+            continue;
+          }
           blockNum += 1;
           allBlocks.push({
             file,
@@ -74,6 +90,18 @@ async function main() {
   const TMP_SUBDIR = join(TEMP_DIR, ".tmp");
   await mkdir(TMP_SUBDIR, { recursive: true });
 
+  // Shared prelude so snippets can rely on common imports without cluttering docs
+  const prelude = `
+/// <reference types="@effect/vitest/globals" />
+import { Effect, Schema, Context, Layer, Config, ConfigError, Console, Option, Match, Redacted } from "effect";
+import { Args, Command, Options } from "@effect/cli";
+import { HttpClient, HttpClientResponse } from "@effect/platform";
+import { FetchHttpClient } from "@effect/platform/FetchHttpClient";
+import { BunContext, BunRuntime } from "@effect/platform-bun";
+export const __prelude = { Effect, Schema, Context, Layer, Config, ConfigError, Console, Option, Match, Redacted, Args, Command, Options, HttpClient, HttpClientResponse, FetchHttpClient, BunContext, BunRuntime };
+`;
+  await writeFile(join(TEMP_DIR, "prelude.ts"), prelude);
+
   // Write each block to its own module to avoid global name collisions
   await Promise.all(
     blocks.map((block) => {
@@ -84,7 +112,7 @@ async function main() {
         .toString()
         .padStart(3, "0")}.ts`;
       const header = `// ${block.file}:${block.startLine} (block ${block.blockNumber})`;
-      const content = [header, "export {};", ...block.lines].join("\n");
+      const content = [header, 'import "./prelude";', "export {};", ...block.lines].join("\n");
       return writeFile(join(TEMP_DIR, filename), content);
     }),
   );
@@ -96,6 +124,7 @@ async function main() {
       lib: ["ES2022", "DOM"],
       noEmit: true,
       skipLibCheck: true,
+      types: ["@effect/vitest/globals"],
       // Ensure every snippet is treated as an isolated module
       moduleDetection: "force",
     },
@@ -113,6 +142,7 @@ async function main() {
     env: {
       ...process.env,
       TMPDIR: TMP_SUBDIR,
+      BUN_INSTALL_CACHE_DIR: TMP_SUBDIR,
     },
   });
 

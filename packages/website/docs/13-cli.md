@@ -63,6 +63,8 @@ Built-in flags (`--help`, `--version`) work automatically.
 ### Argument Patterns
 
 ```typescript
+import { Args } from "@effect/cli"
+
 // Required text
 Args.text({ name: "file" })
 
@@ -82,6 +84,8 @@ Args.text({ name: "files" }).pipe(Args.atLeast(1))
 ### Option Patterns
 
 ```typescript
+import { Options } from "@effect/cli"
+
 // Boolean flag
 Options.boolean("verbose").pipe(Options.withAlias("v"))
 
@@ -103,6 +107,9 @@ Options.integer("count").pipe(Options.withDefault(10))
 Most CLIs have multiple commands. Use `Command.withSubcommands`:
 
 ```typescript
+import { Args, Command } from "@effect/cli"
+import { Console } from "effect"
+
 const task = Args.text({ name: "task" })
 
 const add = Command.make("add", { task }, ({ task }) =>
@@ -200,8 +207,48 @@ class TaskList extends Schema.Class<TaskList>("TaskList")({
 ### The TaskRepo Service
 
 ```typescript
-import { Context, Effect, Layer, Schema } from "effect"
+import { Array, Context, Effect, Layer, Option, Schema } from "effect"
 import { FileSystem } from "@effect/platform"
+// hide-start
+const TaskId = Schema.Number.pipe(Schema.brand("TaskId"))
+type TaskId = typeof TaskId.Type
+
+class Task extends Schema.Class<Task>("Task")({
+  id: TaskId,
+  text: Schema.NonEmptyString,
+  done: Schema.Boolean
+}) {
+  toggle() {
+    return Task.make({ ...this, done: !this.done })
+  }
+}
+
+class TaskList extends Schema.Class<TaskList>("TaskList")({
+  tasks: Schema.Array(Task)
+}) {
+  static Json = Schema.parseJson(TaskList)
+  static empty = TaskList.make({ tasks: [] })
+
+  add(text: string): [TaskList, Task] {
+    const task = Task.make({ id: this.nextId, text, done: false })
+    return [TaskList.make({ tasks: [...this.tasks, task] }), task]
+  }
+
+  toggle(id: TaskId): [TaskList, Option.Option<Task>] {
+    const index = this.tasks.findIndex((t) => t.id === id)
+    if (index === -1) return [this, Option.none()]
+    const updated = this.tasks[index]!.toggle()
+    const tasks = Array.modify(this.tasks, index, () => updated)
+    return [TaskList.make({ tasks }), Option.some(updated)]
+  }
+
+  get nextId(): TaskId {
+    if (this.tasks.length === 0) return TaskId.make(1)
+    return TaskId.make(Math.max(...this.tasks.map((t) => t.id)) + 1)
+  }
+}
+
+// hide-end
 
 class TaskRepo extends Context.Tag("TaskRepo")<
   TaskRepo,
@@ -265,7 +312,24 @@ class TaskRepo extends Context.Tag("TaskRepo")<
 
 ```typescript
 import { Args, Command, Options } from "@effect/cli"
-import { Console } from "effect"
+import { Console, Context, Effect, Option, Schema } from "effect"
+
+// hide-start
+// Minimal stubs to keep this example self-contained for typechecking
+const TaskId = Schema.Number.pipe(Schema.brand("TaskId"))
+type TaskId = typeof TaskId.Type
+type Task = { id: number; text: string; done: boolean }
+
+class TaskRepo extends Context.Tag("TaskRepo")<
+  TaskRepo,
+  {
+    readonly add: (text: string) => Effect.Effect<Task>
+    readonly list: (all?: boolean) => Effect.Effect<ReadonlyArray<Task>>
+    readonly toggle: (id: TaskId) => Effect.Effect<Option.Option<Task>>
+    readonly clear: () => Effect.Effect<void>
+  }
+>() {}
+// hide-end
 
 // add <task>
 const text = Args.text({ name: "task" }).pipe(
@@ -412,7 +476,12 @@ For the full API, see the [@effect/cli documentation](https://effect-ts.github.i
 Import your version from `package.json` to keep it in sync with your published package:
 
 ```typescript
+import { Command } from "@effect/cli"
 import pkg from "./package.json" with { type: "json" }
+
+// hide-start
+const app = Command.make("tasks")
+// hide-end
 
 const cli = Command.run(app, {
   name: "tasks",

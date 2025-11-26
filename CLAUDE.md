@@ -97,6 +97,11 @@ group: Ecosystem
 ---
 ```
 
+### Doc Typechecking Tips
+
+- `bun run typecheck:docs` extracts every ```ts/```typescript code block and compiles it as an isolated module. Keep snippets self-contained.
+- Use `// hide-start` / `// hide-end` inside code fences to include helper stubs (types, imports, small services) that are needed for typechecking but should not render in the docs. This keeps examples focused while staying type-safe.
+
 ### MDX Components
 
 Custom components available in docs:
