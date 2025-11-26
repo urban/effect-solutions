@@ -1,6 +1,6 @@
 import { describe, it } from "@effect/vitest";
 import { strictEqual } from "@effect/vitest/utils";
-import { Effect, Match, Schema } from "effect";
+import { Effect, Match, Option, Schema } from "effect";
 
 describe("05-data-modeling", () => {
   describe("Schema Classes", () => {
@@ -141,6 +141,57 @@ describe("05-data-modeling", () => {
       // TypeScript prevents these at compile time:
       // getUser(postId) // Can't pass PostId where UserId expected
       // sendEmail(userId) // Can't pass UserId where Email expected
+    });
+
+    it("should support Object.assign for adding methods to branded schemas", () => {
+      const GitHubUsername = Object.assign(
+        Schema.String.pipe(
+          Schema.pattern(/^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i),
+          Schema.brand("GitHubUsername"),
+        ),
+        {
+          fromUrl(url: string): Option.Option<typeof GitHubUsername.Type> {
+            const match = url.match(/github\.com\/([^/]+)/);
+            return match
+              ? Option.some(GitHubUsername.make(match[1]))
+              : Option.none();
+          },
+          toProfileUrl: (u: typeof GitHubUsername.Type) =>
+            `https://github.com/${u}`,
+        },
+      );
+      type GitHubUsername = typeof GitHubUsername.Type;
+
+      // .make() still works
+      const username = GitHubUsername.make("octocat");
+      strictEqual(username, "octocat");
+
+      // Custom methods work
+      const fromUrl = GitHubUsername.fromUrl("https://github.com/octocat");
+      strictEqual(Option.isSome(fromUrl), true);
+      strictEqual(Option.getOrThrow(fromUrl), "octocat");
+
+      const profileUrl = GitHubUsername.toProfileUrl(username);
+      strictEqual(profileUrl, "https://github.com/octocat");
+
+      // Returns None for invalid URLs
+      const invalid = GitHubUsername.fromUrl("https://example.com/user");
+      strictEqual(Option.isNone(invalid), true);
+
+      // Schema validation still works
+      let threw = false;
+      try {
+        GitHubUsername.make("invalid--username"); // double hyphen not allowed
+      } catch {
+        threw = true;
+      }
+      strictEqual(threw, true);
+
+      // Type safety: function expecting GitHubUsername
+      function greet(u: GitHubUsername) {
+        return `Hello, ${u}!`;
+      }
+      strictEqual(greet(username), "Hello, octocat!");
     });
   });
 
