@@ -50,6 +50,27 @@ const processUser = Effect.fn("processUser")(function* (userId: string) {
 })
 ```
 
+`Effect.fn` also accepts a second argument: a function that transforms the entire effect. This is useful for adding cross-cutting concerns like timeouts without wrapping the body:
+
+```typescript
+import { Effect, flow, Schedule } from "effect"
+// hide-start
+declare const fetchData: (url: string) => Effect.Effect<string>
+declare const processData: (data: string) => Effect.Effect<string>
+// hide-end
+
+const fetchWithTimeout = Effect.fn("fetchWithTimeout")(
+  function* (url: string) {
+    const data = yield* fetchData(url)
+    return yield* processData(data)
+  },
+  flow(
+    Effect.retry(Schedule.recurs(3)),
+    Effect.timeout("5 seconds")
+  )
+)
+```
+
 **Benefits:**
 
 - Call-site tracing for each invocation
